@@ -5,7 +5,7 @@ import numpy as np
 from girth import onepl_mml, twopl_mml, threepl_mml,ability_eap
 from typing import Optional
 
-def simulate_irt_scores(
+def simulate_data_determinstic(
     abilities_df: pd.DataFrame,
     item_latents_df: pd.DataFrame,
     account_col: str = "participant_id",
@@ -46,6 +46,75 @@ def simulate_irt_scores(
         account_col: abilities_df[account_col].values,
         "Score": expected_scores
     })
+
+def simulate_data_stochastic(
+    abilities_df: pd.DataFrame,
+    item_latents_df: pd.DataFrame,
+    account_col: str = "participant_id",
+    ability_col: str = "theta",
+    a_col: str = "a",
+    b_col: str = "b",
+    c_col: Optional[str] = "c",
+    n_simulations: int = 1,
+    seed: Optional[int] = None
+) -> pd.DataFrame:
+    """
+    Simulate binary item responses using a probabilistic (stochastic) IRT model.
+
+    Each response is drawn as a Bernoulli trial with probability:
+        P = c + (1 - c) / (1 + exp[-a * (theta - b)])
+
+    This produces realistic variation in total scores (unlike the deterministic version).
+
+    Parameters
+    ----------
+    abilities_df : pd.DataFrame
+        Columns: [account_col, ability_col].
+    item_latents_df : pd.DataFrame
+        Columns: [a_col, b_col, (optional) c_col].
+    n_simulations : int
+        Number of independent simulated datasets to average (for smoother histograms).
+    seed : int, optional
+        Random seed for reproducibility.
+
+    Returns
+    -------
+    pd.DataFrame
+        Columns: [account_col, Score, Simulation].
+    """
+    if seed is not None:
+        np.random.seed(seed)
+
+    if account_col not in abilities_df or ability_col not in abilities_df:
+        raise ValueError(f"abilities_df must have columns [{account_col}, {ability_col}]")
+    if b_col not in item_latents_df:
+        raise ValueError(f"item_latents_df must include '{b_col}'")
+
+    items = item_latents_df.copy()
+    if a_col not in items:
+        items[a_col] = 1.0
+    if c_col is None or c_col not in items:
+        c_col = "__c__"
+        items[c_col] = 0.0
+
+    thetas = abilities_df[ability_col].to_numpy(dtype=float)
+    a = items[a_col].to_numpy(dtype=float)
+    b = items[b_col].to_numpy(dtype=float)
+    c = items[c_col].to_numpy(dtype=float)
+
+    P = c[None, :] + (1.0 - c[None, :]) / (1.0 + np.exp(-a[None, :] * (thetas[:, None] - b[None, :])))
+
+    sims = []
+    for s in range(n_simulations):
+        R = (np.random.rand(*P.shape) < P).astype(int)
+        scores = R.sum(axis=1)
+        sims.append(pd.DataFrame({
+            account_col: abilities_df[account_col].values,
+            "Score": scores,
+            "Simulation": s + 1
+        }))
+
+    return pd.concat(sims, ignore_index=True)
 
 
 '''
@@ -157,3 +226,53 @@ def fit_with_girth(irt_df, model_spec="1PL", epochs=10, quadrature_n=21):
         items_df["c"] = c
 
     return persons_df, items_df
+
+def prepare_mirt_input( df: pd.DataFrame,
+    participant_col: str = "participant_id",
+    item_col: str = "item_id",
+    response_col: str = "response",
+    fill_missing=np.nan,     # use 0 if you want missing treated as wrong
+    sort=True
+) -> pd.DataFrame:
+    """
+    Convert long IRT data (participant_id | item_id | response) to the wide 0/1/NA
+    matrix expected by R's mirt (rows=persons, cols=items).
+    - Duplicates (same person,item) are collapsed with max() to keep 0/1 binary.
+    - item_id columns are strings; responses are numeric {0,1,NA}.
+    """
+    if not {participant_col, item_col, response_col} <= set(df.columns):
+        missing = {participant_col, item_col, response_col} - set(df.columns)
+        raise ValueError(f"Missing required columns: {sorted(missing)}")
+
+    # Clean & enforce types
+    x = df[[participant_col, item_col, response_col]].copy()
+    x[participant_col] = x[participant_col].astype(str)
+    x[item_col] = x[item_col].astype(str)
+    x[response_col] = pd.to_numeric(x[response_col], errors="coerce")
+
+    # Keep only 0/1 (drop anything else)
+    x = x[x[response_col].isin([0, 1])]
+
+    # Collapse duplicates deterministically (0/1 -> max keeps 1 if any)
+    x = (x
+         .groupby([participant_col, item_col], as_index=False)[response_col]
+         .max())
+
+    # Pivot to wide
+    wide = x.pivot_table(index=participant_col,
+                         columns=item_col,
+                         values=response_col,
+                         aggfunc="max")
+
+    # Optional: fill missings (mirt handles NA fine; 0 treats missing as wrong)
+    if fill_missing is not np.nan:
+        wide = wide.fillna(fill_missing)
+
+    # Nice ordering
+    if sort:
+        wide = wide.sort_index().reindex(sorted(wide.columns), axis=1)
+
+    # Ensure numeric dtype
+    wide = wide.apply(pd.to_numeric, errors="coerce")
+
+    return wide
