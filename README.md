@@ -6,6 +6,8 @@
 ### Data Pre-Processing
 
 ```python
+from wordmatch import clean,irt_format
+
 csv_path = "data/WordMatch/Binary_WordMatch.csv"
 
 raw_df = load_csv_into_df(csv_path)
@@ -15,6 +17,9 @@ irt_df = irt_format.create_irt_input(df)
 
 ### IRT Processing: with Girth
 ```python
+from irt import process
+import io_utils
+
 abilities_df, items_df = process.fit_with_girth(
     irt_df,
     epochs=10000000,
@@ -27,6 +32,8 @@ save_df_as_csv(items_df,"items.csv") #optional
 
 ### Simulating Data
 ```python
+from irt import process
+
 simulated_df = process.simulate_irt_scores(
     abilities_df=abilities_df,
     item_latents_df=items_df) 
@@ -34,6 +41,9 @@ simulated_df = process.simulate_irt_scores(
 
 ### (Optional) Visualise and Compare Real and Simulated Data
 ```python
+import matplotlib.pyplot as plt
+from irt import visualise 
+
 bins = 25
 groups = [
         [1, 2],        # subplot 1
