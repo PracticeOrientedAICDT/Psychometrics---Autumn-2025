@@ -4,6 +4,16 @@
 ## Testing WordMatch
 
 ### Data Pre-Processing
+- Clean data  
+- Change to IRT format:
+
+  Example:
+
+  | participant_id | item_id | response |
+  |----------------|----------|-----------|
+  | 1097 | 1 | 1 |
+  | 1097 | 2 | 0 |
+
 
 ```python
 from wordmatch import clean,irt_format
