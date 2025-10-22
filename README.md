@@ -27,9 +27,9 @@ save_df_as_csv(items_df,"items.csv") #optional
 
 ### Simulating Data
 ```python
-    simulated_df = process.simulate_irt_scores(
-        abilities_df=abilities_df,
-        item_latents_df=items_df) 
+simulated_df = process.simulate_irt_scores(
+    abilities_df=abilities_df,
+    item_latents_df=items_df) 
 ```
 
 ### (Optional) Visualise and Compare Real and Simulated Data
