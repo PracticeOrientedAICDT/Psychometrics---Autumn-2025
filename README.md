@@ -7,13 +7,11 @@
 - Clean data  
 - Change to IRT format:
 
-  Example:
-
   | participant_id | item_id | response |
   |----------------|----------|-----------|
-  | 1097 | 1 | 1 |
-  | 1097 | 2 | 0 |
-
+  | 1028 | 1 | 1 |
+  | 1028 | 2 | 0 |
+  | ... | ... | ... |
 
 ```python
 from wordmatch import clean,irt_format
@@ -23,6 +21,45 @@ csv_path = "data/WordMatch/Binary_WordMatch.csv"
 raw_df = load_csv_into_df(csv_path)
 df = clean.get_wordmatch_df(raw_df,verbose=False)
 irt_df = irt_format.create_irt_input(df)
+```
+### IRT Processing: with MIRT
+-Prepare data for MIRT and save to csv
+
+  | participant_id | item_id 1 | item_id 2 | ... |
+  |----------------|----------|-----------|
+  | participant_id 1 | response | response | ... |
+  | participant_id 2 | response | response | ... |
+  |  ... | ... | ... | ... |
+
+```python
+from irt import process
+import io_utils
+
+irt_df = process.prepare_mirt_input(irt_df)
+irt_in_csv = "data/WordMatch/mirt_in.csv"
+save_df_as_csv(irt_df,irt_in_csv)
+
+```
+-Open R console
+```r
+install.packages("mirt")
+```
+```r
+source("path/to/project/fit_irt.r") 
+```
+```r
+fit_irt(
+  input_csv = "path/to/project/data/WordMatch/mirt_in.csv",
+  out_abilities_csv = "/path/to/project/data/WordMatch/abilities.csv",
+  out_items_csv = "path/to/project/data/WordMatch/item_params.csv"
+)
+```
+-Then:
+```python
+import io_utils
+
+abilities_df = load_csv_into_df("data/WordMatch/abilities.csv")
+items_df = load_csv_into_df("data/WordMatch/item_params.csv")
 ```
 
 ### IRT Processing: with Girth
@@ -44,7 +81,7 @@ save_df_as_csv(items_df,"items.csv") #optional
 ```python
 from irt import process
 
-simulated_df = process.simulate_irt_scores(
+simulated_df = process.simulate_data_stochastic(
     abilities_df=abilities_df,
     item_latents_df=items_df) 
 ```
