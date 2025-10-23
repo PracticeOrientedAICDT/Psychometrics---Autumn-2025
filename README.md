@@ -1,9 +1,6 @@
-# Psychometrics---Autumn-2025
- Psychometrics practial project 
+# Testing WordMatch
 
-## Testing WordMatch
-
-### Data Pre-Processing
+## Data Pre-Processing
 - Clean data  
 - Change to IRT format:
 
@@ -22,11 +19,12 @@ raw_df = load_csv_into_df(csv_path)
 df = clean.get_wordmatch_df(raw_df,verbose=False)
 irt_df = irt_format.create_irt_input(df)
 ```
-### IRT Processing: with MIRT
--Prepare data for MIRT and save to csv
+
+## IRT Processing: with MIRT
+- Prepare data for MIRT and save to csv
 
   | participant_id | item_id 1 | item_id 2 | ... |
-  |----------------|----------|-----------|
+  |----------------|----------|-----------|-----------|
   | participant_id 1 | response | response | ... |
   | participant_id 2 | response | response | ... |
   |  ... | ... | ... | ... |
@@ -40,7 +38,7 @@ irt_in_csv = "data/WordMatch/mirt_in.csv"
 save_df_as_csv(irt_df,irt_in_csv)
 
 ```
--Open R console
+- Open R console
 ```r
 install.packages("mirt")
 ```
@@ -54,7 +52,7 @@ fit_irt(
   out_items_csv = "path/to/project/data/WordMatch/item_params.csv"
 )
 ```
--Then:
+- Then:
 ```python
 import io_utils
 
@@ -62,7 +60,7 @@ abilities_df = load_csv_into_df("data/WordMatch/abilities.csv")
 items_df = load_csv_into_df("data/WordMatch/item_params.csv")
 ```
 
-### IRT Processing: with Girth
+## IRT Processing: with Girth
 ```python
 from irt import process
 import io_utils
@@ -77,7 +75,7 @@ save_df_as_csv(abilities_df,"abilities.csv") #optional
 save_df_as_csv(items_df,"items.csv") #optional
 ```
 
-### Simulating Data
+## Simulating Data
 ```python
 from irt import process
 
@@ -86,7 +84,7 @@ simulated_df = process.simulate_data_stochastic(
     item_latents_df=items_df) 
 ```
 
-### (Optional) Visualise and Compare Real and Simulated Data
+## (Optional) Visualise and Compare Real and Simulated Data
 ```python
 import matplotlib.pyplot as plt
 from irt import visualise 
