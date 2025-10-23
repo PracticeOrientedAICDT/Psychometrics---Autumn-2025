@@ -20,7 +20,9 @@ def plot_percentile_distribution(
     Returns (fig, ax). Does NOT call plt.show().
     """
     if account_col not in df.columns:
-        raise ValueError(f"Column '{account_col}' not found.")
+        account_col = "participant_id"
+        if account_col not in df.columns:
+            raise ValueError(f"Column '{account_col}' not found.")
     if score_col not in df.columns:
         raise ValueError(f"Column '{score_col}' not found.")
 
