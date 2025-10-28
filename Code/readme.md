@@ -6,4 +6,6 @@ Explains what each piece of code does
 - The main idea is:
   * Treat each level attempted as one item.
   *  Keep only three columns in the output: participant_id = AccountId, item_id = 1..TotalResponses, response ∈ {0,1} (1 = the participant got that item right (correct), 0 = the participant got that item wrong (incorrect))
+  *  Set Level = CorrectResponses if they differ.
+- Produces a new dataframe with the right IRT format
   
