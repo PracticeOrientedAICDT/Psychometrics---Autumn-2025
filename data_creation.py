@@ -1,6 +1,5 @@
 import numpy as np
 import pandas as pd
-import argparse
 
 
 def irt_prob(theta, a, b, c):
@@ -28,9 +27,11 @@ def generate_irt_data(num_students, num_items, a_params, b_params, c_params):
 # Example usage
 num_students = 10000
 num_items = 8
-a_params = np.array([1.0] * num_items)  # Discrimination parameters
-b_params = np.linspace(-2, 2, num_items)  # Difficulty parameters
+#a_params = np.array([1.0] * num_items)  # Discrimination parameters
+a_params = np.array([1.0, 2.0, 1.0, 2.0, 1.0, 2.0, 1.0, 2.0])  # Discrimination parameters
+#b_params = np.linspace(-2, 2, num_items)  # Difficulty parameters
 #b_params = np.array([0.0] * num_items)  # Difficulty parameters
+b_params = np.array([-2.0, -2.0, -1.0, -1.0, 1.0, 1.0, 1.5, 1.5])  # Difficulty parameters
 c_params = np.array([0.0] * num_items)  # Guessing parameters
 data = generate_irt_data(num_students, num_items, a_params, b_params, c_params)
 data.to_csv('irt_data.csv', index=False)
