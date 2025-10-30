@@ -205,3 +205,6 @@ cython_debug/
 marimo/_static/
 marimo/_lsp/
 __marimo__/
+Gyrate_UserResults.xlsx
+/gyrate/Gyrate_UserResults.xlsx
+/gyrate/.ipynb_checkpoints/
