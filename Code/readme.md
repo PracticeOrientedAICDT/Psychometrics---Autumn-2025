@@ -11,4 +11,5 @@ Explains what each piece of code does
 
   
 - **Note: An assumption made is With only aggregates (eg TotalResponses=23, CorrectResponses=20), we don’t know the exact order of right/wrong trials.For a clean IRT-style table, we adopt a deterministic convention: the first 20 item_ids are marked correct (1) and the last 3 are wrong (0)**
+- **Total Responses = Correct Responses + up to 3 because of the three lives a user has**
   
