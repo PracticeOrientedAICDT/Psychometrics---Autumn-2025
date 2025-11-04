@@ -1,0 +1,5 @@
+fit_irt(
+  input_csv = "data/QuickCalc/mirt_in_full.csv",
+  out_abilities_csv = "data/QuickCalc/abilities.csv",
+  out_items_csv     = "data/QuickCalc/item_params.csv"
+)
