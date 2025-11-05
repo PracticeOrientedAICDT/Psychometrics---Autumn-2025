@@ -8,7 +8,7 @@ KEEP_ATTEMPT = "first"   # options: "first", "latest", "best"
 # Main function
 
 def main(path=DATA_PATH, keep_attempt=KEEP_ATTEMPT,
-         file1="IRTMatrix.csv", file2="IRTMatrixExtended.csv", file3="PreIRTscore.csv"):
+         file1="IRTMatrix.csv", file2="IRTMatrixExtended.csv"):
     """
     Receives as input the excel file to process, the criteria to follow when getting rid of 
     multiple attempts by participants, and creates two excel files with suitable IRT matrices.
@@ -20,24 +20,13 @@ def main(path=DATA_PATH, keep_attempt=KEEP_ATTEMPT,
 
     create_IRT_matrix(irtM, file1)             # <-- save the binary matrix
     create_IRT_matrix_extended(irtM_extended, file2)  # <-- save the 3-attempts matrix
-    create_pre_irt_scoring(df, file3)
+
 
 def create_IRT_matrix(df, file):
     df.to_csv(file, index=True)
 
 def create_IRT_matrix_extended(df, file):
     df.to_csv(file, index=True)
-
-def create_pre_irt_scoring(df, file):
-    required_cols = ["AccountId", "Score", "Percentage"]
-    
-    # Ensure all columns exist
-    missing = [col for col in required_cols if col not in df.columns]
-    if missing:
-        raise KeyError(f"Missing required columns: {missing}")
-    df = df[required_cols]
-    df.to_csv(file, index=True)
-    
 
 
 def parse_failed_levels(s: str | float | None) -> dict[int, int]:
