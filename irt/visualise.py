@@ -57,8 +57,62 @@ def plot_percentile_distribution(
 
     return fig, ax
 
+# ---------------------------
+# 2) Score distribution
+# ---------------------------
+def plot_score_distribution(
+    df: pd.DataFrame,
+    account_col: str = "AccountId",
+    score_col: str = "Score",
+    bins: int = 20,
+    warn_inconsistent: bool = True,
+    ax: Optional[plt.Axes] = None,
+    title: Optional[str] = None,
+):
+    """
+    Plot a histogram of *raw scores* (not percentiles).
+    Returns (fig, ax). Does NOT call plt.show().
+    """
+    # Identify account column (fallback to participant_id)
+    if account_col not in df.columns:
+        account_col = "participant_id"
+        if account_col not in df.columns:
+            raise ValueError(f"Column '{account_col}' not found.")
+
+    if score_col not in df.columns:
+        raise ValueError(f"Column '{score_col}' not found.")
+
+    # If a Simulation column exists, assume caller pre-filtered; otherwise just take
+    # one score per account (consistent with percentile plotter)
+    per_acc = df.groupby(account_col)[score_col].agg(["nunique", "first"])
+    if warn_inconsistent:
+        inconsistent = per_acc.query("nunique > 1")
+        if not inconsistent.empty:
+            print(
+                f"⚠️ {len(inconsistent)} account(s) have differing '{score_col}' values. "
+                f"Using first value per account."
+            )
+
+    scores = pd.to_numeric(per_acc["first"], errors="coerce").dropna()
+    if scores.empty:
+        raise ValueError("No valid numeric scores to plot.")
+
+    if ax is None:
+        fig, ax = plt.subplots(figsize=(8, 5))
+    else:
+        fig = ax.figure
+
+    ax.hist(scores, bins=bins, edgecolor="black", linewidth=0.5)
+    ax.set_xlabel("Raw score")
+    ax.set_ylabel("Frequency")
+    ax.grid(True, linestyle="--", alpha=0.5)
+    ax.set_title(title or f"Raw Score Distribution (n={len(scores)})")
+
+    return fig, ax
+
+
 # ---------------
-# 2) ICC plotter
+# 3) ICC plotter
 # ---------------
 def plot_icc(
     item_params_df: pd.DataFrame,
@@ -124,7 +178,7 @@ def plot_icc(
     return fig, ax
 
 # ---------------------------------------
-# 3) Combine Plots
+# 4) Combine Plots
 # ---------------------------------------
 def compose_plots(
     plotters: Sequence[Callable[..., Tuple[plt.Figure, plt.Axes]]],

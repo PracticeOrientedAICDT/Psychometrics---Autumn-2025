@@ -1,41 +1,41 @@
 import pandas as pd
-import os
 import matplotlib.pyplot as plt
-from irt.visualise import plot_percentile_distribution, plot_icc, compose_plots
+from irt.visualise import plot_percentile_distribution, plot_score_distribution, plot_icc, compose_plots
 
-# Load the simulated (or expected) scores
-scores_df = pd.read_csv("data/QuickCalc/scores_deterministic.csv")  # or scores_simulated.csv
-items_df  = pd.read_csv("data/QuickCalc/item_params.csv")      # must have a,b; c optional
+scores_df = pd.read_csv("data/QuickCalc/scores_simulated.csv")  
+items_df  = pd.read_csv("data/QuickCalc/item_params.csv")
 
-# Build two plotters that accept ax=...
+def plot_scores(ax=None):
+    return plot_score_distribution(
+        df=scores_df,
+        account_col="participant_id",
+        score_col="Score",
+        bins='auto',
+        ax=ax,
+        title="Raw Score Distribution"
+    )
+
 def plot_percentiles(ax=None):
     return plot_percentile_distribution(
         df=scores_df,
-        account_col="participant_id",   # falls back to this if AccountId absent
+        account_col="participant_id",
         score_col="Score",
-        bins=20,
+        bins='auto',
         ax=ax,
-        title="QuickCalc Percentile Distribution"
+        title="Percentile Distribution"
     )
 
 def plot_iccs(ax=None):
-    return plot_icc(
-        item_params_df=items_df,        # columns: item_id|QuestionID, a, b, (c)
-        items=None,                     # or pass a list like ["1","2","3"]
-        ax=ax,
-        title="QuickCalc Item Characteristic Curves",
-        show_legend=True
-    )
+    return plot_icc(item_params_df=items_df, ax=ax, title="Item Characteristic Curves")
 
-# Compose into one figure (2 cols)
 fig, axes = compose_plots(
-    plotters=[plot_percentiles, plot_iccs],
+    plotters=[plot_scores, plot_percentiles, plot_iccs],  # or just the first two
     ncols=2,
-    figsize=(12, 5),
-    suptitle="QuickCalc — Simulated Scores & ICCs"
+    figsize=(12, 8),
+    suptitle="QuickCalc — Raw Scores, Percentiles, and ICCs"
 )
 
-out_dir = "data/QuickCalc/plots"
-os.makedirs(out_dir, exist_ok=True)
-fig.savefig(f"{out_dir}/quickcalc_withc_filled.png", dpi=300, bbox_inches="tight")
-print(f"✅ Saved {out_dir}/quickcalc_overview.png")
+# Save (or plt.show())
+import os
+os.makedirs("data/QuickCalc/plots", exist_ok=True)
+fig.savefig("data/QuickCalc/plots/quickcalc_new.png", dpi=300, bbox_inches="tight")
