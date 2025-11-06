@@ -29,6 +29,10 @@ item_cols <- grep("^item_id\\b", names(dat), value = TRUE, ignore.case = TRUE)
 if (length(item_cols) == 0L) stop("No columns starting with 'item_id' were found.")
  
 dat_items <- dat[item_cols]
+
+# NEW: fill NAs with 0 in the item response matrix
+dat_items[is.na(dat_items)] <- 0
+
 varying <- vapply(dat_items, function(x) length(unique(na.omit(x))) > 1, logical(1))
 dat_items <- dat_items[varying]
 if (ncol(dat_items) < 2L) stop("Not enough varying 'item_id' columns to fit a model.")
