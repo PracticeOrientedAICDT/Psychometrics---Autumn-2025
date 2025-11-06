@@ -24,13 +24,13 @@
 install.packages("mirt")
 ```
 ```r
-source("path/to/project/fit_irt.r") 
+source("path/to/project/irt/MIRT.r") 
 ```
 ```r
 fit_irt(
   input_csv = "path_to_project/data/assessment_name/mirt_in.csv",
   out_abilities_csv = "path_to_project/data/assessment_name/modelling/abilities.csv",
- out_items_csv = "path_to_project/data/assessment_name/modelling/item_params.csv",
+  out_items_csv = "path_to_project/data/assessment_name/modelling/item_params.csv",
   itemtype = "2PL",
   method = "EM",
   mirt_args = list(SE = TRUE,quadpts = 41),
