@@ -1,34 +1,40 @@
 import re
 import numpy as np
 import pandas as pd
+import os
 
-DATA_PATH = "../Gyrate_UserResults.xlsx"
+
+
+PATHS = ["../Gyrate_UserResults.xlsx", "../Results_Gyrate.csv"]
 KEEP_ATTEMPT = "first"   # options: "first", "latest", "best"
 
 # Main function
 
-def main(path=DATA_PATH, keep_attempt=KEEP_ATTEMPT,
-         file1="IRTMatrix.csv", file2="IRTMatrixExtended.csv", file3="PreIRTscore.csv"):
+def main(paths=PATHS, keep_attempt=KEEP_ATTEMPT,
+         file1="IRTMatrix.csv", file2="IRTMatrixExtended.csv", file3="PreIRTscore.csv", file4="PreIRTscoreExtended.csv"):
     """
     Receives as input the excel file to process, the criteria to follow when getting rid of 
     multiple attempts by participants, and creates two excel files with suitable IRT matrices.
     """
-    df = load_sessions_dev(path, keep_attempt)                 # Loads data and cleans repeated rows and empty columns
-    df = remove_repeated_attempts(df, keep_attempt)            # Removes repeated participants
-    irtM = make_item_response_matrix_binary(df)                # Creates IRT matrix 1 level = 1 item
-    irtM_extended = make_item_response_matrix_3attempts(df)    # Creates IRT matrix 1 level = 3 items
 
-    create_IRT_matrix(irtM, file1)             # <-- save the binary matrix
-    create_IRT_matrix_extended(irtM_extended, file2)  # <-- save the 3-attempts matrix
-    create_pre_irt_scoring(df, file3)
+    path1, path2 = paths[0], paths[1]
+    
+    create_IRT_matrix(path1, file1)
+    create_IRT_matrix(path2, file2)             # <-- save the binary matrix
+    
+    create_pre_irt_scoring(path1, file3)
+    create_pre_irt_scoring(path2, file4)
 
-def create_IRT_matrix(df, file):
-    df.to_csv(file, index=True)
+def create_IRT_matrix(path, file, keep_attempt=KEEP_ATTEMPT):
+    df = load_sessions_dev(path, keep_attempt) 
+    df = remove_repeated_attempts(df, keep_attempt)
+    irtM = make_item_response_matrix_binary(df)
+    irtM.to_csv(file, index=True)
 
-def create_IRT_matrix_extended(df, file):
-    df.to_csv(file, index=True)
 
-def create_pre_irt_scoring(df, file):
+def create_pre_irt_scoring(path, file, keep_attempt=KEEP_ATTEMPT):
+    df = load_sessions_dev(path, keep_attempt) 
+    df = remove_repeated_attempts(df, keep_attempt)
     required_cols = ["AccountId", "Score", "Percentage"]
     
     # Ensure all columns exist
@@ -62,16 +68,26 @@ def parse_failed_levels(s: str | float | None) -> dict[int, int]:
             fails[A] = max(fails.get(A, 0), B)
     return fails
 
-def load_sessions_dev(path=DATA_PATH, keep_attempt=KEEP_ATTEMPT):
+def is_excel_file(filename):
+    excel_extensions = {".xls", ".xlsx"}
+    _, ext = os.path.splitext(filename)
+    return ext.lower() in excel_extensions
+
+def load_sessions_dev(path, keep_attempt=KEEP_ATTEMPT):
     """
     Read the raw summary rows and coalesce each group of duplicate-key rows into one row
     by taking the first non-null value inside each group for the data columns.
     """
-    df = pd.read_excel(path)
+
+    if is_excel_file(path):
+        df = pd.read_excel(path)
+    else:
+        df = pd.read_csv(path)
+
     df.columns = [c.strip() for c in df.columns]
 
     # Drop unused columns if present
-    df = df.drop(columns=[c for c in ["Percentile", "BonusAwards", "EarlyResponses", "LateResponses"] if c in df.columns],
+    df = df.drop(columns=[c for c in ["Title", "Gender", "CountryOfResidence", "DateOfBirth", "CreatedDate", "EthnicOrigin", "CountryOfOrigin", "MaritalStatus", "Educationlevel", "NumberOfChildren", "Postcode", "PreferredLanguageCode", "Percentile", "BonusAwards", "EarlyResponses", "LateResponses"] if c in df.columns],
                  errors="ignore")
 
     # Types we rely on
