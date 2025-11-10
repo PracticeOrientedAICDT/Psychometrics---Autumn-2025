@@ -1,6 +1,6 @@
 import os
 import pandas as pd
-from cleaning.QuickCalc import analyse
+from preprocess.QuickCalc import analyse
 
 def create_irt_input(
     df: pd.DataFrame,
@@ -74,15 +74,20 @@ def create_irt_input(
     return irt_df
 
 def run(df):   
-    
-    columns_to_keep = ["AccountId","AssessmentId","AssessmentVersionId","Score","Percentile","Level","FailedLevels","CreationDate"
+    x= analyse.count_all_unique_groups(df)
+    print(x)
+
+    columns_to_keep = ["AccountId","AssessmentResultId","AssessmentId","AssessmentVersionId","Score","Percentile","Level","FailedLevels","CreationDate"
     ]
     df = analyse.filter_df_columns(df,columns=columns_to_keep)
     cleaned_df = analyse.remove_nan_rows(df,["Level"])
+  
     cleaned_df["Level"] = cleaned_df["Level"].astype(int) - 1
     cleaned_df["Level"] = cleaned_df["Level"].clip(lower=0)
 
-    irt_df = create_irt_input(df)
+    num_items = cleaned_df["Level"].max()
+    
+    irt_df = create_irt_input(df,n_items=num_items)
     irt_df = analyse.drop_column(irt_df,"participant_id")
 
     
