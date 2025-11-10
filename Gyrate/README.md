@@ -5,9 +5,13 @@ Orgainised workspace for IRT analysis for the Gyrate game in Python and R, inclu
 ##  Folder Structure
 
 ├── data/ # Item parameters & abilities ONLY
+
 ├── preprocessing/ # Convert raw data to IRT format
+
 ├── visualisation/ # ICC plots & distribution plots
+
 ├── simulation/ # Simulations using IRT parameters
+
 └── computer_adaptive_testing/ # CAT for IRT 
 
 ### `data/`
