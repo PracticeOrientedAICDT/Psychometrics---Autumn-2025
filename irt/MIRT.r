@@ -4,7 +4,7 @@
 #' to build stable starts (incl. g bounds) and retries 3PL.
 #'
 #' @param input_csv         Path to wide 0/1/NA CSV (rows=persons, cols=items). May include an ID column.
-#' @param out_abilities_csv Output path for person scores (EAP/MAP/etc).
+#' @param out_abilities_csv Output path for person scores (EAP/MAP/etc). 
 #' @param out_items_csv     Output path for item parameters (a,b,c).
 #' @param id_cols           Candidate ID column names.
 #' @param n_factors         Number of latent factors (default 1).
@@ -234,11 +234,35 @@ fit_irt <- function(input_csv,
   )
 
   # ---- Write outputs --------------------------------------------------------
+  # directory containing mirt_in.csv
+  base_dir <- dirname(input_csv)
+
+  # modelling subfolder inside that directory
+  modelling_dir <- file.path(base_dir, "modelling")
+
+  # create modelling folder if missing
+  if (!dir.exists(modelling_dir)) {
+    dir.create(modelling_dir, recursive = TRUE)
+  }
+
+  # final output CSV paths
+  
+  base_dir <- dirname(input_csv)
+  modelling_dir <- file.path(base_dir, "modelling")
+  out_abilities_csv <- file.path(modelling_dir, "abilities.csv")
+  out_items_csv     <- file.path(modelling_dir, "item_params.csv")
+  
   utils::write.csv(abilities_df, out_abilities_csv, row.names = FALSE)
   utils::write.csv(items_df, out_items_csv, row.names = FALSE)
 
-  message(sprintf("✅ Wrote %s and %s (itemtype=%s, method=%s, factors=%d)",
-                  out_abilities_csv, out_items_csv, itemtype, method, n_factors))
+  message(sprintf(
+  "✅ Wrote:\n  abilities → %s\n  items     → %s\n(itemtype=%s, method=%s, factors=%d)",
+  normalizePath(out_abilities_csv, mustWork = FALSE),
+  normalizePath(out_items_csv, mustWork = FALSE),
+  itemtype,
+  method,
+  n_factors
+  ))
 
   invisible(list(abilities_df = abilities_df, items_df = items_df, fit = fit))
 }
