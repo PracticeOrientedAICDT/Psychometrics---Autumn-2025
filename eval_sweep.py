@@ -19,7 +19,7 @@ import pandas as pd
 import matplotlib.pyplot as plt
 
 # Import your existing runners (adjust module name/path if needed)
-from CAT import run_cat, run_fixed, CATConfig
+from CAT import run_cat, run_fixed, CATConfig, load_item_bank
 
 
 def parse_theta_spec(spec: str) -> np.ndarray:
@@ -53,7 +53,7 @@ def sweep(
     base_seed: int | None = 1234,
 ) -> pd.DataFrame:
     """Run multiple trials per theta; return long DataFrame with per-trial results."""
-    df_items = pd.read_csv(items_csv)
+    df_items = load_item_bank(items_csv)
 
     rows = []
     rng = np.random.default_rng(base_seed)

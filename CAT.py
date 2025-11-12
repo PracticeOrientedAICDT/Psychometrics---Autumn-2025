@@ -22,6 +22,68 @@ import pandas as pd
 import matplotlib.pyplot as plt
 
 
+# ---------- Loading Data ----------
+CANON_HEADERS = {"item_id", "a", "b", "c"}  # c ignored in 2PL but allowed
+
+def load_item_bank(path: str) -> pd.DataFrame:
+    """
+    Robust item bank reader:
+    - tolerates single/double quotes around headers/values
+    - tolerates accidental index column
+    - tolerates 'QuestionID' instead of 'item_id'
+    - enforces numeric a/b/c and creates item_id if missing
+    """
+    # Try normal read first
+    try:
+        df = pd.read_csv(path)
+    except Exception:
+        # If a weird quoting scheme, retry with single-quote as quotechar
+        df = pd.read_csv(path, quotechar="'", skipinitialspace=True)
+
+    # Strip whitespace and quotes from column names
+    df.columns = (df.columns
+                  .str.strip()
+                  .str.strip("'").str.strip('"')
+                  .str.lower())
+
+    # Drop a stray unnamed index column if present
+    bad_idx_cols = [c for c in df.columns if c.startswith("unnamed")]
+    if bad_idx_cols:
+        df = df.drop(columns=bad_idx_cols)
+
+    # Normalise item_id column name
+    if "item_id" not in df.columns and "questionid" in df.columns:
+        df = df.rename(columns={"questionid": "item_id"})
+
+    # If still no item_id, create one
+    if "item_id" not in df.columns:
+        df.insert(0, "item_id", [str(i) for i in range(len(df))])
+
+    # Strip quotes/spaces from item_id values
+    df["item_id"] = (df["item_id"].astype(str)
+                     .str.strip().str.strip("'").str.strip('"'))
+
+    # Ensure required numeric columns exist
+    for col in ["a", "b"]:
+        if col not in df.columns:
+            raise ValueError(f"items file must contain columns 'a' and 'b' (found: {list(df.columns)})")
+
+    # Coerce numeric, fail early if bad data
+    for col in ["a", "b", "c"]:
+        if col in df.columns:
+            df[col] = pd.to_numeric(df[col], errors="raise")
+
+    # Optional: sanity checks
+    if (df["a"] <= 0).any():
+        raise ValueError("All 'a' parameters must be > 0 for 2PL.")
+
+    # Keep only known columns (order: item_id, a, b, c if present)
+    keep = [c for c in ["item_id", "a", "b", "c"] if c in df.columns]
+    df = df[keep].copy()
+
+    return df
+
+
 # ---------- Small numeric utilities ----------
 def normal_pdf(x: np.ndarray, mu: float = 0.0, sd: float = 1.0) -> np.ndarray:
     z = (x - mu) / sd
@@ -351,7 +413,7 @@ def parse_args():
 
 def main():
     args = parse_args()
-    df = pd.read_csv(args.items)
+    df = load_item_bank(args.items)
     if "item_id" not in df.columns:
         df.insert(0, "item_id", [str(i) for i in range(len(df))])
 
