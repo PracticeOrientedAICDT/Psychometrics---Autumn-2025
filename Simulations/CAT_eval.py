@@ -60,7 +60,7 @@ import pandas as pd
 import matplotlib.pyplot as plt
 
 # Import your existing runners (adjust module name/path if needed)
-from CAT import run_cat, run_fixed, CATConfig, load_item_bank
+from simulations.CAT import run_cat, run_fixed, CATConfig, load_item_bank
 
 
 def parse_theta_spec(spec: str) -> np.ndarray:
