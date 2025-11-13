@@ -1,15 +1,53 @@
 #!/usr/bin/env python3
 # scripts/CAT.py
-"""
-2PL CAT with EAP updates + posterior overlay plot.
-Supports:
-  --mode cat   → adaptive testing (select next item by information)
-  --mode fixed → present all items in order, each repeated N times.
 
-Usage examples:
-  python CAT.py --mode cat --items data/QuickCalc/item_params.csv --true-theta 0.5
-  python CAT.py --mode fixed --items data/QuickCalc/item_params.csv --true-theta 0.5 --item-repeats 2
 """
+2PL CAT / Fixed-Form Simulator
+==============================
+
+Runs a simulated test when given a bank of IRT item parameters. 
+Estimates the player's ability (theta) by updating a posterior distribution with every observed response.
+**two modes**:
+
+  • `--mode fixed` → non-adaptive  
+      - Present all items in file order  
+      - Each item is presented exactly `--item-repeats` times  
+
+  • `--mode cat`   → adaptive testing  
+      - Select next item by Fisher information at current θ̂ 
+      - Choose randomly among top-`--top-k` items 
+      - Stop when SE ≤ `--se-target` or max items reached  
+      - Items can be used up to `--item-repeats` times  
+
+Responses:
+  • If `--interactive`, you enter 0/1 manually  
+  • Else if `--true-theta` given, responses are simulated for that θ  
+  • Else responses are simulated using the prior mean (default θ=0)
+
+Key Parameters:
+  --items PATH          Item bank CSV with columns: item_id, a, b (, c optional)
+  --true-theta FLOAT    Simulated ability level
+  --item-repeats INT    Max repeats per item (CAT) or fixed repeats (fixed mode)
+  --prior-mu/sd FLOAT   Normal prior for θ
+  --save PATH           Write step-by-step trace CSV
+  --outdir PATH         Save posterior/θ plots
+  --seed INT            RNG seed for reproducible runs
+
+CAT-specific Parameters:
+  --se-target FLOAT     CAT stopping rule on posterior SE
+  --max-items INT       Hard cap on CAT length
+  --top-k INT           Randomesque top-k item selection
+  --grid-lo/hi FLOAT    θ grid bounds for EAP
+  --grid-pts INT        Number of θ grid points
+
+Examples:
+  CAT mode:
+      python CAT.py --mode cat --items bank.csv --true-theta 0.3 --se-target 0.18 --max-items 30
+
+  Fixed mode:
+      python CAT.py --mode fixed --items bank.csv --item-repeats 2
+"""
+
 
 from __future__ import annotations
 import argparse

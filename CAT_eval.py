@@ -1,15 +1,56 @@
 #!/usr/bin/env python3
 # eval_sweep.py
+
 """
-Sweep true-theta values and estimate bias/accuracy using CAT.py runners.
+CAT / Fixed-Form Evaluation Sweep
+=================================
+
+Runs the IRT simulations from CAT.py at many different theta levels.
+Can evaluate how well the simulation can estimate theta across a range of values.
+For each θ it:
+
+  • runs `--trials` (default=50) independent simulations (different seeds)
+  • collects final θ̂ and posterior SE
+  • computes bias, MAE, RMSE, and SE summaries
+  • saves CSVs + diagnostic plots
+
+Theta grid:
+  --thetas='-3:3:0.5'   → range lo:hi:step  (inclusive, with last point forced to hi)
+  --thetas='-2,-1,0,1'  → explicit comma-separated list
+
+Modes (passed straight through to CAT.py):
+  --mode fixed          → non-adaptive, uses run_fixed(...)
+  --mode cat            → adaptive CAT, uses run_cat(...)
+
+Key Parameters:
+  --items PATH          Item bank CSV with columns: item_id, a, b (, c optional)
+  --trials INT          Number of repeated runs per θ
+  --true-theta FLOAT    Simulated ability level 
+  --item-repeats INT    Max repeats per item (CAT) or fixed repeats (fixed mode)
+  --prior-mu/sd FLOAT   Normal prior for θ
+  --outdir PATH         Save posterior/θ plots
+  --base-seed INT       Seed to generate all per-trial RNG seeds
+
+CAT-specific Parameters:
+  --se-target FLOAT     CAT stopping rule on posterior SE
+  --max-items INT       Hard cap on CAT length
+  --top-k INT           Randomesque top-k item selection
+  --grid-lo/hi FLOAT    θ grid bounds for EAP
+  --grid-pts INT        Number of θ grid points
+
+Outputs (into --outdir):
+  • sweep_<mode>_raw.csv    → one row per trial (θ_true, θ̂, error, SE, ...)
+  • sweep_<mode>_agg.csv    → bias/MAE/RMSE/SE summarised per θ_true
+  • sweep_<mode>_*.png      → bias, MAE/RMSE, SE curves + θ̂ vs θ scatter
 
 Examples:
-  python eval_sweep.py --items data/QuickCalc/item_params.csv --mode fixed \
-      --thetas '-3:3:0.5' --trials 50 --item-repeats 2 --outdir data/QuickCalc/eval
+  python CAT_eval.py --items items.csv --mode fixed \
+      --thetas='-3:3:0.5' --trials 50 --item-repeats 2 --outdir data/QuickCalc/eval
 
-  python eval_sweep.py --items data/QuickCalc/item_params.csv --mode cat \
-      --thetas '-2:2:0.25' --trials 100 --item-repeats 1 --max-items 25 --se-target 0.3
+  python CAT_eval.py --items items.csv --mode cat \
+      --thetas='-2:2:0.25' --trials 100 --item-repeats 1 --max-items 25 --se-target 0.3
 """
+
 
 from __future__ import annotations
 import argparse
