@@ -22,7 +22,7 @@ fit_irt <- function(input_csv,
                         out_items_csv    = "item_params.csv",
                         id_cols          = c("participant_id", "AccountId"),
                         n_factors        = 1,
-                        itemtype         = "3PL",
+                        itemtype         = "2PL",
                         method           = "EM",
                         verbose          = TRUE) {
   if (!requireNamespace("mirt", quietly = TRUE)) {
@@ -135,7 +135,7 @@ fit_irt <- function(input_csv,
 # (your fit_irt() function definition above)
 
 # ====== run the model ======
-in_csv  <- "/Users/du25016/Documents/GitHub/Psychometrics---Autumn-2025/data/memorygrid/memorygrid_mirt.csv"
+in_csv  <- "/Users/du25016/Documents/GitHub/Psychometrics---Autumn-2025/data/quickcalc/mirt_quickcalc.csv"
 out_dir <- "/Users/du25016/Documents/GitHub/Psychometrics---Autumn-2025/out"
 dir.create(out_dir, showWarnings = FALSE, recursive = TRUE)
 
@@ -147,7 +147,7 @@ ret <- fit_irt(
   out_abilities_csv = abilities_csv,
   out_items_csv     = items_csv,
   n_factors         = 1,
-  itemtype          = "3PL",
+  itemtype          = "2PL",
   method            = "EM",
   verbose           = FALSE
 )

@@ -1,0 +1,96 @@
+QuikCalc
+
+A list of calcalation types, 1, 2, ... is defined in the code.
+N.B. this needs documenting.
+
+Each level draws from a moving subset of our different calculation types, rather than a single calculation type. If n balloons at each level, the set should be the previous n calculation types. So if n were 3, the balloons would go:
+
+Level 1: Difficulty 1, difficulty 1, difficulty 1
+Level 2: Difficulty 2, difficulty 1, difficulty 2 (the first two levels are special cases; we could do something different here but it's not important)
+Level 3: Difficulty 3, difficulty 2, difficulty 1
+Level 4: Difficulty 4, difficulty 3, difficulty 2
+Level 5: Difficulty 5, difficulty 4, difficulty 3
+Level 6: Difficulty 6, difficulty 5, difficulty 4
+
+The levelling should be regardless of user responses.
+
+Timing:
+
+# Release interval
+This is the code in V2 that was ported from V1 
+
+```
+levelAttributes[1] = { 'bonus': 0, 'speedup': 0, 'releaseInterval': 3200, 'levelUpHits': 3 };
+levelAttributes[2] = { 'bonus': 0, 'speedup': 0, 'releaseInterval': 2500, 'levelUpHits': 3 };
+levelAttributes[4] = levelAttributes[3] = levelAttributes[2];
+levelAttributes[5] = levelAttributes[6] = { 'bonus': 400, 'speedup': -1000, 'releaseInterval': 2500, 'levelUpHits': 3 };
+levelAttributes[10] = levelAttributes[9] = levelAttributes[8] = levelAttributes[7] = levelAttributes[6];
+levelAttributes[11] = { 'bonus': 0, 'speedup': -2500, 'releaseInterval': 4000, 'levelUpHits': 3 };
+levelAttributes[15] = levelAttributes[14] = levelAttributes[13] = levelAttributes[12] = levelAttributes[11];
+levelAttributes[16] = { 'bonus': 0, 'speedup': -2000, 'releaseInterval': 4000, 'levelUpHits': 3 };
+levelAttributes[20] = levelAttributes[19] = levelAttributes[18] = levelAttributes[17] = levelAttributes[16];
+levelAttributes[25] = levelAttributes[24] = levelAttributes[23] = levelAttributes[22] = levelAttributes[21] = levelAttributes[20];
+levelAttributes[30] = levelAttributes[29] = levelAttributes[28] = levelAttributes[27] = levelAttributes[26] = levelAttributes[25];
+```
+
+# Balloon Lifetime
+```
+var balloonindex = randomBetween(0, 4);
+var la = levelProperties["Attributes"][lvl];
+var balloonSpeed = 10000 - la.speedup + (balloonindex * 500);
+```
+
+
+Objective score
+
+# correct responses
+
+i.e. number of balloons successfully answered
+
+
+Display score
+
+Balloon successfully answered: +100 points
+N.B. no points deducted for incorrect answers
+
+
+Difficulty levels
+
+Copied from the code. Note that these don't correspond to levels per se. But the first stimulus that appears for a given level should be of this type. (See above.)
+
+levelFunctions[1] = { 'operation': 'addition', 'left': [2, 3, 4, 5, 6, 7], 'right': [2, 3, 4, 5, 6, 7, 8], maxlimit: 9 };
+levelFunctions[2] = { 'operation': 'subtraction', 'left': [4, 5, 6, 7, 8, 9], 'right': [2, 3, 4, 5, 6, 7, 8], maxlimit: 9 };
+levelFunctions[3] = { 'operation': 'addition', 'left': [2, 3, 4, 5, 6, 7, 8], 'right': [2, 3, 4, 5, 6, 7, 8], minlimit: 10 };
+levelFunctions[4] = { 'operation': 'subtraction', 'left': { 'min': 10, 'max': 16 }, 'right': [2, 3, 4, 5, 6, 7, 8, 9], maxlimit: 9 };
+levelFunctions[5] = { 'operation': 'multiplication', 'left': [2, 3, 4, 5, 10], 'right': [2, 3, 4, 5, 6, 8] }; //M1
+levelFunctions[6] = { 'operation': 'division', 'left': [2, 3, 4, 5, 10], 'right': [2, 3, 4, 5, 6, 8] };//D1
+levelFunctions[7] = { 'operation': 'addition', 'left': { 'min': 11, 'max': 30 }, 'right': { 'min': 1, 'max': 9 } };
+levelFunctions[8] = { 'operation': 'subtraction', 'left': [20, 30, 40, 50, 60, 70, 80, 90], 'right': { 'min': 1, 'max': 9 }, minlimit: 12 };
+levelFunctions[9] = { 'operation': 'fraction', 'left': ['1/4', '1/2', '1/3', '1/5'], 'right': [2, 3, 4, 5, 6, 7, 8, 9] };//F1
+
+levelFunctions[10] = { 'operation': 'addition', 'left': { 'min': 11, 'max': 60 }, 'right': { 'min': 11, 'max': 30 } };
+levelFunctions[11] = { 'operation': 'percentage', 'left': [10, 20, 50], 'right': [2, 3, 4, 5, 6, 7, 8, 9] };//P1
+levelFunctions[12] = { 'operation': 'subtraction', 'left': { 'min': 21, 'max': 70 }, 'right': { 'min': 11, 'max': 30 } };
+levelFunctions[13] = { 'operation': 'addition', 'left': [20, 30, 40, 50, 60, 70, 80, 90], 'right': { 'min': 11, 'max': 30 }, decimal: 10.0 };
+
+levelFunctions[14] = { 'operation': 'multiplication', 'left': [4, 6, 7, 8, 9, 11, 12], 'right': { 'min': 3, 'max': 12 } };//M2
+levelFunctions[15] = { 'operation': 'addition', 'left': { 'min': 111, 'max': 899 }, 'right': { 'min': 11, 'max': 50 } };//A6
+levelFunctions[16] = { 'operation': 'percentage', 'left': [10, 20, 25, 40], 'right': [4, 5, 6, 8, 10, 12, 15] };//P2
+levelFunctions[17] = { 'operation': 'subtraction', 'left': [20, 30, 40, 50, 60, 70, 75, 80, 90], 'right': { 'min': 11, 'max': 30 }, decimal: 10.0 };
+levelFunctions[18] = { 'operation': 'fraction', 'left': ['1/3', '2/3', '1/5', '2/5', '3/5', '4/5', '1/8', '3/8'], 'right': { 'min': 6, 'max': 20 } };//F2
+levelFunctions[19] = { 'operation': 'subtraction', 'left': { 'min': 111, 'max': 899 }, 'right': { 'min': 11, 'max': 60 } };
+
+levelFunctions[20] = { 'operation': 'division', 'left': [4, 6, 7, 8, 9, 11, 12], 'right': { 'min': 3, 'max': 12 } };//D2
+levelFunctions[21] = { 'operation': 'addition', 'left': { 'min': 111, 'max': 899 }, 'right': { 'min': 11, 'max': 50 }, decimal: 10.0 };
+levelFunctions[22] = { 'operation': 'multiplication', 'left': { 'min': 7, 'max': 19 }, 'right': { 'min': 4, 'max': 20 } };//M3
+levelFunctions[23] = { 'operation': 'subtraction', 'left': { 'min': 111, 'max': 899 }, 'right': { 'min': 11, 'max': 60 }, decimal: 10.0 };
+
+levelFunctions[24] = { 'operation': 'division', 'left': { 'min': 7, 'max': 19 }, 'right': { 'min': 4, 'max': 20 } };//D3
+
+levelFunctions[25] = { 'operation': 'fraction', 'left': ['1/5', '2/5', '3/5', '4/5', '1/6', '5/6', '1/8', '3/8', '5/8', '7/8'], 'right': { 'min': 11, 'max': 50 } };//F3
+levelFunctions[26] = { 'operation': 'percentage', 'left': [15, 30, 40, 60, 70, 80, 85], 'right': [30, 40, 50, 60, 70, 80, 90] };//P3
+
+levelFunctions[27] = { 'operation': 'addition', 'left': { 'min': 111, 'max': 899 }, 'right': { 'min': 111, 'max': 899 } };//A8
+levelFunctions[28] = { 'operation': 'subtraction', 'left': { 'min': 212, 'max': 899 }, 'right': { 'min': 111, 'max': 899 }};
+levelFunctions[29] = { 'operation': 'addition', 'left': { 'min': 111, 'max': 899 }, 'right': { 'min': 111, 'max': 899 }, decimal: 100.0 };
+levelFunctions[30] = { 'operation': 'subtraction', 'left': { 'min': 212, 'max': 899 }, 'right': { 'min': 111, 'max': 899 }, decimal: 100.0 };

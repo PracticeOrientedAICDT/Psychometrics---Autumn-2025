@@ -1,0 +1,33 @@
+QuikCalc Additional Scores
+
+CorrectResponses:
+# balloons answered
+N.B. if a single response answers multiple balloons, each of these balloons contributes to CorrectResponses.
+
+TotalResponses:
+# balloons answered + # responses which don't answer a balloon
+
+ReactionTime:
+Average lifetime of balloons which get answered.
+N.B. balloons which do not get answered do not affect this score.
+
+BonusAwards
+# bonuses due to runs
+
+Level
+Highest level passed
+N.B. regardless of user input
+N.B. not reached; it is level reached - 1
+
+FailedLevels
+comma separated colon separated format
+failure 1 details,failure 2 details,...
+failure details = level at which this failure occurred:the number of failures at that level up to and including this failure:calculation type
+
+EarlyResponses
+# balloons which were answered "quickly"
+Quickly means the first quarter of the balloon's life
+
+LateResponses
+# balloons which were answered "slowly"
+Slowly means the last quarter of the balloon's life

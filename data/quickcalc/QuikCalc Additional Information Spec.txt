@@ -1,0 +1,42 @@
+Game:
+{
+	Balloons:
+	[
+		{
+			Id: ballon indexed by death (not birth),
+			Stimulus:
+			{
+				Level: -,
+				Calculation: -,
+				Answer: -,
+				Difficulty: -,
+				StartTime: milliseconds since assessment start,
+				TimeToLive: milliseconds since assessment start, regardless of whether gets answered,
+				VerticalChannel: -,
+			},
+			Outcome:
+			{
+				IsCorrect: true if the balloon gets (correctly) answered; false if the balloon dies without being answered; null if the assessment ends before the balloon dies or is answered,
+				ResponseId: the response which answered the balloon, null if balloon was not answered,
+				ReactionTime: time in milliseconds from creation of balloon to answering of balloon, null if balloon was not answered
+			}
+		},
+		...
+	],
+	Responses:
+	[
+		{
+			Id: response number,
+			Response:
+			{
+				Response: the number given as an answer,
+				TimeFromStart: milliseconds since assessment start
+			},
+			Outcome:
+			{
+				CorrectBalloonsCount: number of balloons answered by this response, null if response answered no baloons
+			}
+		},
+		...
+	]
+}

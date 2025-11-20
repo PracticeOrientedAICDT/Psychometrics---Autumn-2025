@@ -7,7 +7,7 @@ import pandas as pd
 from memorygrid.clean_mg import get_memorygrid_df
 from memorygrid.irt_format_mg import create_irt_input, summarize_matrix
 
-RAW_PATH     = "data/memorygrid/MemoryGrid_UserResults.csv"
+RAW_PATH     = "data/memorygrid/Results_Memorygrid(sheet1).csv"
 IRT_LONG_OUT = "data/memorygrid/memorygrid_irt_long.csv"
 MIRT_IN_OUT  = "data/memorygrid/memorygrid_mirt.csv"
 
