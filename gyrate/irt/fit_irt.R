@@ -25,7 +25,6 @@ fit_irt <- function(input_csv,
                         itemtype         = "3PL",
                         method           = "EM",
                         verbose          = FALSE) {
-
   if (!requireNamespace("mirt", quietly = TRUE)) {
     stop("Package 'mirt' is required but not installed. Install with install.packages('mirt').")
   }
@@ -51,26 +50,6 @@ fit_irt <- function(input_csv,
   # Ensure numeric 0/1/NA matrix for mirt
   dat[] <- lapply(dat, function(x) suppressWarnings(as.numeric(x)))
   dat_mat <- as.data.frame(dat)
-  # Ensure numeric 0/1/NA matrix for mirt
-  dat[] <- lapply(dat, function(x) suppressWarnings(as.numeric(x)))
-  dat_mat <- as.data.frame(dat)
-
-  # --- Drop items with no variability (all 0s, all 1s, or all NA) ---
-  distinct_nonmissing <- vapply(dat_mat, function(x)
-    length(unique(stats::na.omit(x))), integer(1)
-  )
-
-  invariant_items <- names(distinct_nonmissing[distinct_nonmissing < 2])
-
-  if (length(invariant_items)) {
-    message("⚠️ Dropping invariant items (all 0s or all 1s): ",
-            paste(invariant_items, collapse = ", "))
-    dat_mat[invariant_items] <- NULL
-  }
-
-  if (ncol(dat_mat) == 0L) {
-    stop("All items were invariant; nothing to fit.")
-  }
 
   # --- Fit IRT model ---
   fit <- mirt::mirt(dat_mat,
