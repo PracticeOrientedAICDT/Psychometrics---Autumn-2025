@@ -22,10 +22,9 @@ fit_irt <- function(input_csv,
                         out_items_csv    = "item_params.csv",
                         id_cols          = c("participant_id", "AccountId"),
                         n_factors        = 1,
-                        itemtype         = "3PL",
+                        itemtype         = "2PL",
                         method           = "EM",
-                        verbose          = FALSE) {
-
+                        verbose          = TRUE) {
   if (!requireNamespace("mirt", quietly = TRUE)) {
     stop("Package 'mirt' is required but not installed. Install with install.packages('mirt').")
   }
@@ -52,14 +51,13 @@ fit_irt <- function(input_csv,
   dat[] <- lapply(dat, function(x) suppressWarnings(as.numeric(x)))
   dat_mat <- as.data.frame(dat)
   # Ensure numeric 0/1/NA matrix for mirt
-  dat[] <- lapply(dat, function(x) suppressWarnings(as.numeric(x)))
+  dat[]   <- lapply(dat, function(x) suppressWarnings(as.numeric(x)))
   dat_mat <- as.data.frame(dat)
 
-  # --- Drop items with no variability (all 0s, all 1s, or all NA) ---
-  distinct_nonmissing <- vapply(dat_mat, function(x)
-    length(unique(stats::na.omit(x))), integer(1)
-  )
-
+  # --- INSERT THIS BLOCK (auto-skip items with no variability) ---
+  # Items with < 2 distinct non-missing values are all-0 or all-1 (or all-NA),
+  # which mirt cannot estimate.
+  distinct_nonmissing <- vapply(dat_mat, function(x) length(unique(stats::na.omit(x))), integer(1))
   invariant_items <- names(distinct_nonmissing[distinct_nonmissing < 2])
 
   if (length(invariant_items)) {
@@ -71,7 +69,6 @@ fit_irt <- function(input_csv,
   if (ncol(dat_mat) == 0L) {
     stop("All items were invariant; nothing to fit.")
   }
-
   # --- Fit IRT model ---
   fit <- mirt::mirt(dat_mat,
                     model   = n_factors,
@@ -135,3 +132,77 @@ fit_irt <- function(input_csv,
 
   invisible(list(abilities_df = abilities_df, items_df = items_df, fit = fit))
 }
+# (your fit_irt() function definition above)
+# ====== run the model (QUICKCALC VERSION) ======
+
+# Path to your QuickCalc wide CSV:
+in_csv  <- "/Users/du25016/Documents/GitHub/Psychometrics---Autumn-2025/data/quickcalc/mirt_quickcalc.csv"
+
+# Output directory for QuickCalc results:
+out_dir <- "/Users/du25016/Documents/GitHub/Psychometrics---Autumn-2025/out_quickcalc"
+dir.create(out_dir, showWarnings = FALSE, recursive = TRUE)
+
+# Output file names (QuickCalc prefixed)
+abilities_csv <- file.path(out_dir, "quickcalc_abilities.csv")
+items_csv     <- file.path(out_dir, "quickcalc_item_params.csv")
+
+# Run the model
+ret <- fit_irt(
+  input_csv         = in_csv,
+  out_abilities_csv = abilities_csv,
+  out_items_csv     = items_csv,
+  n_factors         = 1,
+  itemtype          = "2PL",   # or "3PL" if you switch back
+  method            = "EM",
+  verbose           = FALSE
+)
+
+# ====== plots ======
+library(mirt)
+library(ggplot2)
+library(ggmirt)
+
+# Lattice plots
+p_icc_lattice  <- plot(ret$fit, type = "trace")
+p_iifs_lattice <- plot(ret$fit, type = "infotrace")
+p_tif_lattice  <- plot(ret$fit, type = "info")
+
+png(file.path(out_dir, "quickcalc_icc_grid.png"), width = 1600, height = 1200, res = 150)
+print(p_icc_lattice)
+dev.off()
+
+png(file.path(out_dir, "quickcalc_item_info.png"), width = 1400, height = 700, res = 150)
+print(p_iifs_lattice)
+dev.off()
+
+png(file.path(out_dir, "quickcalc_test_info.png"), width = 1400, height = 700, res = 150)
+print(p_tif_lattice)
+dev.off()
+
+# ggmirt overlay ICCs
+p_icc_ggmirt <- tracePlot(
+  model       = ret$fit,
+  items       = NULL,
+  facet       = FALSE,
+  theta_range = c(-6, 6),
+  title       = "QuickCalc Item Characteristic Curves (overlay)"
+)
+ggsave(file.path(out_dir, "quickcalc_icc_overlay.png"), p_icc_ggmirt, width = 14, height = 8, dpi = 150)
+
+# ggmirt item information overlay
+p_iif_ggmirt <- itemInfoPlot(
+  model       = ret$fit,
+  items       = NULL,
+  facet       = FALSE,
+  theta_range = c(-6, 6),
+  title       = "QuickCalc Item Information (overlay)"
+)
+ggsave(file.path(out_dir, "quickcalc_item_info_overlay.png"), p_iif_ggmirt, width = 12, height = 7, dpi = 150)
+
+# ggmirt test information
+p_tif_ggmirt <- testInfoPlot(
+  model       = ret$fit,
+  theta_range = c(-6, 6),
+  title       = "QuickCalc Test Information Curve"
+)
+ggsave(file.path(out_dir, "quickcalc_test_info_overlay.png"), p_tif_ggmirt, width = 12, height = 7, dpi = 150)

@@ -110,9 +110,6 @@ def plot_score_distribution(
 
     return fig, ax
 
-
-# ---------------
-# 3) ICC plotter
 # ---------------
 def plot_icc(
     item_params_df: pd.DataFrame,
@@ -178,6 +175,7 @@ def plot_icc(
     return fig, ax
 
 # ---------------------------------------
+# ---------------------------------------
 # 4) Combine Plots
 # ---------------------------------------
 def compose_plots(
@@ -203,6 +201,7 @@ def compose_plots(
     for plotter, ax in zip(plotters, axes_list):
         plotter(ax=ax)
 
+    # Hide any unused axes
     for ax in axes_list[len(plotters):]:
         ax.set_visible(False)
 

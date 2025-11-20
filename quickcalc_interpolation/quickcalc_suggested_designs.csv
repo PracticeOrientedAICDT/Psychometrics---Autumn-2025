@@ -1,0 +1,6 @@
+n_functions,releaseInterval,speedup,bonus,balloon_lifetime_min,balloon_lifetime_max,has_addition,has_subtraction,has_multiplication,has_division,has_fraction,has_percentage,operations,pred_b,abs_err
+3,2200,0,0,10000,12000,1,0,0,0,1,0,"('addition', 'fraction')",-1.712819466589405,2.212819466589405
+3,2200,0,0,10000,12000,1,0,1,0,0,0,"('addition', 'multiplication')",-1.784864782451626,2.284864782451626
+3,2200,0,0,10000,12000,0,0,0,0,1,0,"('fraction',)",-1.8048723502334738,2.304872350233474
+3,2200,0,0,10000,12000,0,0,1,1,0,0,"('multiplication', 'division')",-1.8988223675658613,2.3988223675658613
+3,2200,0,0,10000,12000,1,0,0,0,0,1,"('addition', 'percentage')",-1.924794143496113,2.424794143496113
