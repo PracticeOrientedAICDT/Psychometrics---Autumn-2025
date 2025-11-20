@@ -1,0 +1,3 @@
+responses = ../NumberRecall/Data/
+abilities = ../NumberRecall/Data/abilities.csv
+items = ../NumberRecall/Data/item_params.csv

@@ -1,0 +1,3 @@
+responses = ../QuickCalc_Noah/mirt_in_full.csv
+abilities = ../QuickCalc_Noah/abilities.csv
+items = ../QuickCalc_Noah/item_params.csv
