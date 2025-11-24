@@ -11,7 +11,11 @@ sys.path.append(str(SRC_DIR))
 
 from utils.io_utils import validate_csv_paths
 from init_core.clean import get_cleaned_responses
-from init_core.viz import visualise_gender_across_data,visualise_age_curves_across_data
+from init_core.viz import (
+    visualise_gender_across_data,
+    visualise_age_curves_across_data,
+    visualise_country_stack_across_data,
+)
 
 RAW_DATA_DIR = PROJECT_ROOT / "data" / "raw"
 
@@ -65,6 +69,10 @@ def show_gender():
 def show_ages():
     visualise_age_curves_across_data(get_cleaned_dict(), dob_col="DateOfBirth", overlay=True, bandwidth=3.0)
 
-
+def show_country_of_residence():
+    visualise_country_stack_across_data(data_dict=get_cleaned_dict(),
+                                        column="CountryOfResidence",
+                                        top_n=8
+                                        )
 if __name__ == "__main__":
-    show_ages()
+    show_country_of_residence()
