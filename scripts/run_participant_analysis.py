@@ -1,7 +1,8 @@
 from pathlib import Path
 import sys
-import numpy as np
 import pandas as pd
+from pathlib import Path
+import matplotlib.pyplot as plt
 
 #  Compute project directories
 SCRIPT_DIR = Path(__file__).resolve().parent
@@ -12,10 +13,16 @@ sys.path.append(str(SRC_DIR))
 from utils.io_utils import validate_csv_paths
 from init_core.clean import get_cleaned_responses
 from init_core.viz import (
-    visualise_gender_across_data,
     visualise_age_curves_across_data,
+    visualise_gender_stack_across_data,
     visualise_country_stack_across_data,
-    visualise_ethnicity_stack_across_data
+    visualise_country_of_origin_stack_across_data,
+    visualise_ethnicity_stack_across_data,
+    visualise_marital_status_stack_across_data,
+    visualise_education_level_stack_across_data,
+    visualise_number_of_children_stack_across_data,
+    visualise_postcode_stack_across_data,
+    visualise_language_stack_across_data,
 )
 
 RAW_DATA_DIR = PROJECT_ROOT / "data" / "raw"
@@ -28,6 +35,8 @@ PYRAMIDS_RAW = RAW_DATA_DIR / "Pyramids.csv"
 QUICKCALC_RAW = RAW_DATA_DIR / "QuickCalc.csv"
 RAPIDFLAG_RAW = RAW_DATA_DIR / "RapidFlag.csv"
 GYRATE_RAW = RAW_DATA_DIR / "Gyrate.csv"
+
+OUTPUT_DIR = PROJECT_ROOT / "data" / "diagnostics"
 
 paths = [
     EYEBALL_RAW,
@@ -64,20 +73,55 @@ def get_cleaned_dict():
     }
     return data_dict
 
-def show_gender():
-    visualise_gender_across_data(get_cleaned_dict(), gender_col="Gender", overlay=False)
+def save_all_demographic_plots(show=False):
+    """
+    Generate and save ALL demographic plots from init_core.viz
+    into data/diagnostics/. Returns a dict of figure objects.
+    """
+    data_dict = get_cleaned_dict()
+    figs = {}
 
-def show_ages():
-    visualise_age_curves_across_data(get_cleaned_dict(), dob_col="DateOfBirth", overlay=True, bandwidth=3.0)
+    figs["age_distribution"] = visualise_age_curves_across_data(
+        data_dict, show=show
+    )
+    figs["gender_distribution"] = visualise_gender_stack_across_data(
+        data_dict, show=show
+    )
+    figs["country_of_residence_distribution"] = visualise_country_stack_across_data(
+        data_dict, show=show
+    )
+    #figs["country_of_origin_distribution"] = visualise_country_of_origin_stack_across_data(
+    #    data_dict, show=show
+    #)
+    figs["ethnic_origin_distribution"] = visualise_ethnicity_stack_across_data(
+        data_dict, show=show
+    )
+    #figs["marital_status_distribution"] = visualise_marital_status_stack_across_data(
+    #    data_dict, show=show
+    #)
+    figs["education_level_distribution"] = visualise_education_level_stack_across_data(
+        data_dict, show=show
+    )
+    #figs["number_of_children_distribution"] = visualise_number_of_children_stack_across_data(
+    #    data_dict, show=show
+    #)
+    figs["postcode_distribution"] = visualise_postcode_stack_across_data(
+        data_dict, show=show
+    )
+    figs["language_distribution"] = visualise_language_stack_across_data(
+        data_dict, show=show
+    )
 
-def show_country_of_residence():
-    visualise_country_stack_across_data(data_dict=get_cleaned_dict(),
-                                        column="CountryOfResidence",
-                                        top_n=8
-                                        )
+    # ----------------------
+    # SAVE ALL FIGURES
+    # ----------------------
+    for name, fig in figs.items():
+        save_path = OUTPUT_DIR / f"{name}.png"
+        fig.savefig(save_path, dpi=200, bbox_inches="tight")
+        plt.close(fig)
 
-def show_ethnicity():
-    visualise_ethnicity_stack_across_data(get_cleaned_dict(), top_n=6)
+    return figs
+
 
 if __name__ == "__main__":
-    show_ethnicity()
+    save_all_demographic_plots()
