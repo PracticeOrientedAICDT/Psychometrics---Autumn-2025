@@ -441,22 +441,6 @@ def compose_plots(
 
 #-------------------------------------------------------------------
 # 6) PARTICIAPANT ANALYSIS VISUALS 
-def plot_histogram(df: pd.DataFrame, column: str, bins: int = 30):
-
- 
-    if column not in df.columns:
-        raise ValueError(f"Column '{column}' not found in DataFrame.")
-
-    # Drop NaNs so they don't break the plot
-    data = df[column].dropna()
-
-    plt.figure()
-    plt.hist(data, bins=bins)
-    plt.xlabel(column)
-    plt.ylabel("Frequency")
-    plt.title(f"Histogram of {column}")
-    plt.tight_layout()
-    plt.show()
 
 def visualise_gender_across_data(
     data_dict: Dict[str, pd.DataFrame],
@@ -540,4 +524,87 @@ def visualise_gender_across_data(
     plt.tight_layout()
     plt.show()
 
+def visualise_age_curves_across_data(
+    data_dict: Dict[str, pd.DataFrame],
+    dob_col: str = "DateOfBirth",
+    overlay: bool = True,
+    bandwidth: float = 2.0,   # smoothing factor
+):
+    # ---- Extract ages ----
+    ages_by_assessment = {}
+    for name, df in data_dict.items():
+        if dob_col not in df.columns:
+            raise ValueError(f"Column '{dob_col}' not found for '{name}'")
+
+        dob = pd.to_datetime(df[dob_col], errors="coerce").dropna()
+        today = pd.Timestamp("today").normalize()
+
+        ages = dob.apply(lambda d:
+            today.year - d.year - int((today.month, today.day) < (d.month, d.day))
+        )
+
+        if len(ages) > 0:
+            ages_by_assessment[name] = ages
+
+    if not ages_by_assessment:
+        raise ValueError("No valid ages found in any dataset.")
+
+    names = list(ages_by_assessment.keys())
+
+    # Shared x-range across all assessments
+    all_ages = pd.concat(ages_by_assessment.values())
+    x_vals = np.linspace(all_ages.min(), all_ages.max(), 300)
+
+    # Kernel density estimator (manual simple version)
+    def kde(ages, x, bw):
+        ages_arr = ages.values.reshape(-1, 1)
+        return np.mean(
+            np.exp(-0.5 * ((x.reshape(-1, 1) - ages_arr.T) / bw)**2),
+            axis=1
+        )
+
+    # ---- Overlay mode ----
+    if overlay:
+        plt.figure(figsize=(10, 6))
+
+        for name in names:
+            ages = ages_by_assessment[name]
+            y = kde(ages, x_vals, bandwidth)
+            y = y / y.max()     # normalise heights for visual comparison
+
+            plt.plot(x_vals, y, label=name, linewidth=2)
+
+        plt.xlabel("Age (years)")
+        plt.ylabel("Relative density")
+        plt.title("Kernel Density Estimates of Participant Age Distributions Across Assessments")
+        plt.legend()
+        plt.tight_layout()
+        plt.show()
+        return
+
+    # ---- Separate subplots ----
+    n = len(names)
+    n_cols = min(3, n)
+    n_rows = int(np.ceil(n / n_cols))
+
+    fig, axes = plt.subplots(n_rows, n_cols, figsize=(5 * n_cols, 3 * n_rows), sharex=True, sharey=True)
+    axes = np.array(axes).reshape(-1)
+
+    for ax, name in zip(axes, names):
+        ages = ages_by_assessment[name]
+        y = kde(ages, x_vals, bandwidth)
+        y = y / y.max()     # normalise heights per assessment
+
+        ax.plot(x_vals, y, linewidth=2)
+        ax.set_title(name)
+        ax.set_xlabel("Age (years)")
+        ax.set_ylabel("Relative density")
+
+    # Hide unused axes
+    for ax in axes[len(names):]:
+        ax.set_visible(False)
+
+    fig.suptitle("Age Distribution by Assessment (Smoothed Curves)", y=1.02)
+    plt.tight_layout()
+    plt.show()
 

@@ -11,7 +11,7 @@ sys.path.append(str(SRC_DIR))
 
 from utils.io_utils import validate_csv_paths
 from init_core.clean import get_cleaned_responses
-from init_core.viz import visualise_gender_across_data
+from init_core.viz import visualise_gender_across_data,visualise_age_curves_across_data
 
 RAW_DATA_DIR = PROJECT_ROOT / "data" / "raw"
 
@@ -46,7 +46,7 @@ def assert_raw_paths():
 
     print("✔ All CSV paths are valid and reachable.")
 
-def show_gender():
+def get_cleaned_dict():
     data_dict = {
         "QuickCalc": get_cleaned_responses(pd.read_csv(QUICKCALC_RAW)),
         "EyeBall": get_cleaned_responses(pd.read_csv(EYEBALL_RAW)),
@@ -57,8 +57,14 @@ def show_gender():
         "RapidFlag": get_cleaned_responses(pd.read_csv(RAPIDFLAG_RAW)),
         "Gyrate": get_cleaned_responses(pd.read_csv(GYRATE_RAW)),
     }
-    visualise_gender_across_data(data_dict, gender_col="Gender", overlay=False)
+    return data_dict
+
+def show_gender():
+    visualise_gender_across_data(get_cleaned_dict(), gender_col="Gender", overlay=False)
+
+def show_ages():
+    visualise_age_curves_across_data(get_cleaned_dict(), dob_col="DateOfBirth", overlay=True, bandwidth=3.0)
 
 
 if __name__ == "__main__":
-    show_gender()
+    show_ages()
