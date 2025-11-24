@@ -8,7 +8,7 @@ from matplotlib.cm import get_cmap
 from scipy.stats import gaussian_kde
 import seaborn as sns
 from pathlib import Path
-
+from typing import Dict
 
 
 #plt.rcParams["font.family"] = "Times New Roman"     
@@ -360,41 +360,6 @@ def simulated_plot_comparison(
 
     return fig
 
-
-
-def simulated_plot_comparison_(assessment_name,
-                          scores_df = None,
-                          simulated_scores_df = None,
-                          normalised_scores = False,
-                          bins = 25
-                          ):
-    
-    fig = plt.figure(figsize=(12, 8))
-    gs = GridSpec(1, figure=fig,ncols=2) 
-    ax1 = fig.add_subplot(gs[0])
-    ax2 = fig.add_subplot(gs[1])
-
-
-  
-    plot_score_distribution(
-            scores_df,
-            ax=ax1,
-            title="Score Distribution: Observed", 
-            bins=bins,score_col="Score",
-            noramlise_x=normalised_scores
-        )
-    plot_score_distribution(
-            simulated_scores_df,
-            ax=ax2,
-            title="Score Distribution: Simulation", 
-            bins=bins,score_col="Score",
-            noramlise_x=normalised_scores
-        )
-    
-    fig.suptitle(f"{assessment_name}: IRT Simulation Comparison", fontsize=16, fontweight="bold")
-    return fig
-    #fig.tight_layout(rect=[0, 0, 1, 0.95])  
-    
 def raw_sim_tuned_comparison_plot(assessment_name,
                           scores_df = None,
                           simulated_scores_df = None,
@@ -472,3 +437,107 @@ def compose_plots(
         fig.tight_layout()
 
     return fig, axes
+
+
+#-------------------------------------------------------------------
+# 6) PARTICIAPANT ANALYSIS VISUALS 
+def plot_histogram(df: pd.DataFrame, column: str, bins: int = 30):
+
+ 
+    if column not in df.columns:
+        raise ValueError(f"Column '{column}' not found in DataFrame.")
+
+    # Drop NaNs so they don't break the plot
+    data = df[column].dropna()
+
+    plt.figure()
+    plt.hist(data, bins=bins)
+    plt.xlabel(column)
+    plt.ylabel("Frequency")
+    plt.title(f"Histogram of {column}")
+    plt.tight_layout()
+    plt.show()
+
+def visualise_gender_across_data(
+    data_dict: Dict[str, pd.DataFrame],
+    gender_col: str,
+    bins: int = 2,          # not really used for categorical, kept for API compatibility
+    overlay: bool = True,
+):
+    """
+    Visualise gender distributions across multiple assessments.
+
+    Parameters
+    ----------
+    data_dict : Dict[str, pd.DataFrame]
+        Dictionary mapping assessment names -> DataFrames.
+    gender_col : str
+        Name of the gender column present in every DataFrame.
+    bins : int, optional
+        Kept for interface compatibility; not used for categorical genders.
+    overlay : bool, optional (default True)
+        If True  -> draw overlaid bars for each assessment per gender category.
+        If False -> draw grouped bars: for each assessment, show one bar per gender side-by-side.
+    """
+
+    if not isinstance(data_dict, dict) or len(data_dict) == 0:
+        raise ValueError("data_dict must be a non-empty dict of {assessment_name: DataFrame}.")
+
+    # Ensure column exists in all dfs and collect gender categories
+    all_genders = set()
+    for name, df in data_dict.items():
+        if gender_col not in df.columns:
+            raise ValueError(f"Column '{gender_col}' not found in DataFrame for assessment '{name}'.")
+        all_genders.update(df[gender_col].dropna().unique())
+
+    if not all_genders:
+        raise ValueError(f"No non-NaN values found in column '{gender_col}' across all DataFrames.")
+
+    genders = sorted(list(all_genders))
+
+    # Compute counts per assessment per gender
+    counts = {}  # {assessment_name: {gender: count}}
+    for name, df in data_dict.items():
+        value_counts = df[gender_col].value_counts(dropna=True)
+        counts[name] = {g: int(value_counts.get(g, 0)) for g in genders}
+
+    assessment_names = list(data_dict.keys())
+
+    plt.figure(figsize=(10, 6))
+
+    if overlay:
+        # Overlaid bars: one group of categories, each assessment is a separate bar set
+        x = np.arange(len(genders))  # positions per gender
+        width = 0.8 / max(1, len(assessment_names))  # narrower bars if many assessments
+
+        for i, name in enumerate(assessment_names):
+            heights = [counts[name][g] for g in genders]
+            offsets = x + (i - (len(assessment_names) - 1) / 2) * width
+            plt.bar(offsets, heights, width=width, alpha=0.6, label=name)
+
+        plt.xticks(x, genders)
+        plt.xlabel(gender_col)
+        plt.ylabel("Count")
+        plt.title(f"Gender distribution across assessments (overlay mode)")
+        plt.legend(title="Assessment")
+
+    else:
+        # Grouped bars per assessment: x-axis = assessment names, bars = genders
+        x = np.arange(len(assessment_names))  # positions per assessment
+        width = 0.8 / max(1, len(genders))   # space for all genders within each assessment
+
+        for j, gender in enumerate(genders):
+            heights = [counts[name][gender] for name in assessment_names]
+            offsets = x + (j - (len(genders) - 1) / 2) * width
+            plt.bar(offsets, heights, width=width, label=str(gender))
+
+        plt.xticks(x, assessment_names, rotation=45, ha="right")
+        plt.xlabel("Assessment")
+        plt.ylabel("Count")
+        plt.title(f"Gender distribution by assessment (grouped by gender)")
+        plt.legend(title="Gender")
+
+    plt.tight_layout()
+    plt.show()
+
+
