@@ -441,6 +441,98 @@ def compose_plots(
 
 #-------------------------------------------------------------------
 # 6) PARTICIAPANT ANALYSIS VISUALS 
+#Helpers
+
+def _visualise_stacked_categorical_across_data(
+    data_dict: Dict[str, pd.DataFrame],
+    column: str,
+    title: str,
+    label_name: str,
+    top_n: int = 10,
+    as_percentage: bool = True,
+):
+    # -----------------------------
+    # Collect non-null categorical data
+    # -----------------------------
+    cat_series_by_assessment = {}
+    all_values = []
+
+    for name, df in data_dict.items():
+        if column not in df.columns:
+            raise ValueError(f"Column '{column}' not found in dataset '{name}'.")
+
+        vals = df[column].dropna().astype(str)
+        if len(vals) > 0:
+            cat_series_by_assessment[name] = vals
+            all_values.extend(vals)
+
+    if not cat_series_by_assessment:
+        raise ValueError(f"No valid non-NaN values found for '{column}' in any dataset.")
+
+    # -----------------------------
+    # Determine global top-N categories
+    # -----------------------------
+    global_counts = pd.Series(all_values).value_counts()
+    top_categories = list(global_counts.head(top_n).index)
+
+    # -----------------------------
+    # Build table: assessment -> [vals for each top category + 'Other']
+    # -----------------------------
+    table = {}
+    assessments = list(cat_series_by_assessment.keys())
+    categories = top_categories + ["Other"]
+
+    for name, vals in cat_series_by_assessment.items():
+        counts = vals.value_counts()
+        total = len(vals)
+
+        row = []
+        other_sum = 0
+
+        for c in top_categories:
+            v = counts.get(c, 0)
+            if as_percentage:
+                v = v / total * 100
+            row.append(v)
+
+        # Everything not in top_categories gets grouped into 'Other'
+        for cat, count in counts.items():
+            if cat not in top_categories:
+                v = count
+                if as_percentage:
+                    v = count / total * 100
+                other_sum += v
+
+        row.append(other_sum)
+        table[name] = row
+
+    # -----------------------------
+    # Plot 100% stacked bars
+    # -----------------------------
+    plt.figure(figsize=(12, 7))
+
+    assessments_order = assessments
+    bottom = np.zeros(len(assessments_order))
+    colours = plt.rcParams["axes.prop_cycle"].by_key()["color"]
+
+    for i, cat in enumerate(categories):
+        heights = [table[name][i] for name in assessments_order]
+        plt.bar(
+            assessments_order,
+            heights,
+            bottom=bottom,
+            label=cat,
+            color=colours[i % len(colours)],
+        )
+        bottom += heights
+
+    plt.ylabel("% of participants" if as_percentage else "Count")
+    plt.title(title)
+    plt.xticks(rotation=45, ha="right")
+    plt.legend(title=label_name, bbox_to_anchor=(1.05, 1), loc="upper left")
+    plt.tight_layout()
+    plt.show()
+
 
 def visualise_gender_across_data(
     data_dict: Dict[str, pd.DataFrame],
@@ -611,87 +703,37 @@ def visualise_age_curves_across_data(
 def visualise_country_stack_across_data(
     data_dict: Dict[str, pd.DataFrame],
     column: str = "CountryOfResidence",
-    as_percentage: bool = True,
     top_n: int = 10,
+    as_percentage: bool = True,
 ):
+    """
+    100%-stacked bar chart of CountryOfResidence across assessments.
+    """
+    _visualise_stacked_categorical_across_data(
+        data_dict=data_dict,
+        column=column,
+        title="Country of Residence Distribution Across Assessments",
+        label_name="Country",
+        top_n=top_n,
+        as_percentage=as_percentage,
+    )
 
-    # -------------------------------------------------------------
-    # Gather + clean country lists
-    # -------------------------------------------------------------
-    country_data = {}
-    all_countries = []
+def visualise_ethnicity_stack_across_data(
+    data_dict: Dict[str, pd.DataFrame],
+    column: str = "EthnicOrigin",
+    top_n: int = 10,
+    as_percentage: bool = True,
+):
+    """
+    100%-stacked bar chart of EthnicOrigin across assessments.
+    """
+    _visualise_stacked_categorical_across_data(
+        data_dict=data_dict,
+        column=column,
+        title="Ethnic Origin Distribution Across Assessments",
+        label_name="Ethnic origin",
+        top_n=top_n,
+        as_percentage=as_percentage,
+    )
 
-    for name, df in data_dict.items():
-        if column not in df.columns:
-            raise ValueError(f"Column '{column}' not found in dataset '{name}'.")
-
-        vals = df[column].dropna().astype(str)
-        if len(vals) > 0:
-            country_data[name] = vals
-            all_countries.extend(vals)
-
-    if not country_data:
-        raise ValueError("No valid country data found in any dataset.")
-
-    # -------------------------------------------------------------
-    # Determine top N global countries
-    # -------------------------------------------------------------
-    global_counts = pd.Series(all_countries).value_counts()
-    top_countries = list(global_counts.head(top_n).index)
-
-    # -------------------------------------------------------------
-    # Build proportion table
-    # -------------------------------------------------------------
-    table = {}   # assessment -> list of values in order: top countries + "Other"
-    assessments = list(country_data.keys())
-
-    for name, vals in country_data.items():
-        counts = vals.value_counts()
-
-        row = []
-        other_sum = 0
-        total = len(vals)
-
-        for c in top_countries:
-            v = counts.get(c, 0)
-            pct = (v / total * 100) if as_percentage else v
-            row.append(pct)
-
-        for country, count in counts.items():
-            if country not in top_countries:
-                other_sum += (count / total * 100) if as_percentage else count
-
-        row.append(other_sum)
-        table[name] = row
-
-    categories = top_countries + ["Other"]
-
-    # -------------------------------------------------------------
-    # Plot stacked 100% bar chart
-    # -------------------------------------------------------------
-    plt.figure(figsize=(12, 7))
-    bottom = np.zeros(len(assessments))
-
-    colours = plt.rcParams["axes.prop_cycle"].by_key()["color"]
-
-    for i, cat in enumerate(categories):
-        heights = [table[name][i] for name in assessments]
-        plt.bar(
-            assessments,
-            heights,
-            bottom=bottom,
-            label=cat,
-            color=colours[i % len(colours)],
-        )
-        bottom += heights  # update stack
-
-    # -------------------------------------------------------------
-    # Labels, title, etc.
-    # -------------------------------------------------------------
-    plt.ylabel("% of participants" if as_percentage else "Count")
-    plt.title("Country of Residence Distribution Across Assessments")
-    plt.xticks(rotation=45, ha="right")
-    plt.legend(title="Country", bbox_to_anchor=(1.05, 1), loc="upper left")
-    plt.tight_layout()
-    plt.show()
-
+    

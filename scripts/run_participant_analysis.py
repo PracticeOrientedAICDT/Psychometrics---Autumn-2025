@@ -15,6 +15,7 @@ from init_core.viz import (
     visualise_gender_across_data,
     visualise_age_curves_across_data,
     visualise_country_stack_across_data,
+    visualise_ethnicity_stack_across_data
 )
 
 RAW_DATA_DIR = PROJECT_ROOT / "data" / "raw"
@@ -74,5 +75,9 @@ def show_country_of_residence():
                                         column="CountryOfResidence",
                                         top_n=8
                                         )
+
+def show_ethnicity():
+    visualise_ethnicity_stack_across_data(get_cleaned_dict(), top_n=6)
+
 if __name__ == "__main__":
-    show_country_of_residence()
+    show_ethnicity()
