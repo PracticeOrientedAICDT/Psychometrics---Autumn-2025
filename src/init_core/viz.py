@@ -9,6 +9,17 @@ from scipy.stats import gaussian_kde
 import seaborn as sns
 from pathlib import Path
 from typing import Dict
+from typing import Optional
+import numpy as np
+import pandas as pd
+import matplotlib.pyplot as plt
+from typing import Dict, Optional
+import numpy as np
+import pandas as pd
+import matplotlib.pyplot as plt
+from typing import Dict, Optional
+import textwrap
+
 
 
 #plt.rcParams["font.family"] = "Times New Roman"     
@@ -446,9 +457,15 @@ def visualise_age_curves_across_data(
     data_dict: Dict[str, pd.DataFrame],
     dob_col: str = "DateOfBirth",
     overlay: bool = True,
-    bandwidth: float = 2.0,   # smoothing factor
+    bandwidth: float = 2.0,
     show: bool = True,
+    ax: Optional[plt.Axes] = None,
 ):
+    """
+    Plot smoothed age distributions across assessments.
+    If `ax` is provided, draw on that axis; otherwise create a new figure.
+    """
+
     # ---- Extract ages ----
     ages_by_assessment = {}
     for name, df in data_dict.items():
@@ -475,7 +492,7 @@ def visualise_age_curves_across_data(
     all_ages = pd.concat(ages_by_assessment.values())
     x_vals = np.linspace(all_ages.min(), all_ages.max(), 300)
 
-    # Kernel density estimator (manual simple version)
+    # Kernel density estimator
     def kde(ages, x, bw):
         ages_arr = ages.values.reshape(-1, 1)
         return np.mean(
@@ -483,63 +500,38 @@ def visualise_age_curves_across_data(
             axis=1,
         )
 
-    # ---- Overlay mode ----
-    if overlay:
+    # --- Figure / axis setup ---
+    created_fig = False
+    if ax is None:
         fig, ax = plt.subplots(figsize=(10, 6))
+        created_fig = True
+    else:
+        fig = ax.figure
 
-        for name in names:
-            ages = ages_by_assessment[name]
-            y = kde(ages, x_vals, bandwidth)
-            y = y / y.max()  # normalise heights for visual comparison
-
-            ax.plot(x_vals, y, label=name, linewidth=2)
-
-        ax.set_xlabel("Age (years)")
-        ax.set_ylabel("Relative density")
-        ax.set_title(
-            "Kernel Density Estimates of Participant Age Distributions Across Assessments"
-        )
-        ax.legend()
-        fig.tight_layout()
-
-        if show:
-            plt.show()
-
-        return fig
-
-    # ---- Separate subplots ----
-    n = len(names)
-    n_cols = min(3, n)
-    n_rows = int(np.ceil(n / n_cols))
-
-    fig, axes = plt.subplots(
-        n_rows,
-        n_cols,
-        figsize=(5 * n_cols, 3 * n_rows),
-        sharex=True,
-        sharey=True,
-    )
-    axes = np.array(axes).reshape(-1)
-
-    for ax, name in zip(axes, names):
+    # For the combined figure case we only use overlay=True anyway
+    for name in names:
         ages = ages_by_assessment[name]
         y = kde(ages, x_vals, bandwidth)
-        y = y / y.max()  # normalise heights per assessment
+        y = y / y.max()     # normalise heights for comparison
 
-        ax.plot(x_vals, y, linewidth=2)
-        ax.set_title(name)
-        ax.set_xlabel("Age (years)")
-        ax.set_ylabel("Relative density")
+        ax.plot(x_vals, y, label=name, linewidth=2)
 
-    # Hide unused axes
-    for ax in axes[len(names):]:
-        ax.set_visible(False)
+    ax.set_xlabel("Age (years)")
+    ax.set_ylabel("Relative density")
+    ax.set_title("Age distribution across assessments (KDE)")
 
-    fig.suptitle("Age Distribution by Assessment (Smoothed Curves)", y=1.02)
-    fig.tight_layout()
+    # 🔹 changed: move legend outside the plot (right side)
+    ax.legend(
+        fontsize=8,
+        loc="upper left",
+        bbox_to_anchor=(1.02, 1.0),
+        borderaxespad=0.0,
+    )
 
-    if show:
-        plt.show()
+    if created_fig:
+        fig.tight_layout()
+        if show:
+            plt.show()
 
     return fig
 
@@ -555,6 +547,7 @@ def _visualise_stacked_categorical_across_data(
     top_n: int = 10,
     as_percentage: bool = True,
     show: bool = True,
+    ax: Optional[plt.Axes] = None,
 ):
     # -----------------------------
     # Collect non-null categorical data
@@ -572,9 +565,7 @@ def _visualise_stacked_categorical_across_data(
             all_values.extend(vals)
 
     if not cat_series_by_assessment:
-        raise ValueError(
-            f"No valid non-NaN values found for '{column}' in any dataset."
-        )
+        raise ValueError(f"No valid non-NaN values found for '{column}' in any dataset.")
 
     # -----------------------------
     # Determine global top-N categories
@@ -594,20 +585,20 @@ def _visualise_stacked_categorical_across_data(
         total = len(vals)
 
         row = []
-        other_sum = 0.0
+        other_sum = 0
 
         for c in top_categories:
             v = counts.get(c, 0)
             if as_percentage:
-                v = v / total * 100.0
+                v = v / total * 100
             row.append(v)
 
         # Everything not in top_categories gets grouped into 'Other'
         for cat, count in counts.items():
             if cat not in top_categories:
-                v = float(count)
+                v = count
                 if as_percentage:
-                    v = count / total * 100.0
+                    v = count / total * 100
                 other_sum += v
 
         row.append(other_sum)
@@ -616,7 +607,12 @@ def _visualise_stacked_categorical_across_data(
     # -----------------------------
     # Plot 100% stacked bars
     # -----------------------------
-    fig, ax = plt.subplots(figsize=(12, 7))
+    created_fig = False
+    if ax is None:
+        fig, ax = plt.subplots(figsize=(12, 7))
+        created_fig = True
+    else:
+        fig = ax.figure
 
     assessments_order = assessments
     bottom = np.zeros(len(assessments_order))
@@ -636,27 +632,43 @@ def _visualise_stacked_categorical_across_data(
     ax.set_ylabel("% of participants" if as_percentage else "Count")
     ax.set_title(title)
     ax.set_xticklabels(assessments_order, rotation=45, ha="right")
-    ax.legend(title=label_name, bbox_to_anchor=(1.05, 1), loc="upper left")
-    fig.tight_layout()
 
-    if show:
-        plt.show()
+    # 🔹 changed: legend outside the plot on the right
+    # wrap long legend entries
+    wrapped_labels = []
+    for text in ax.get_legend_handles_labels()[1]:
+        wrapped_labels.append("\n".join(textwrap.wrap(text, width=16)))
+    handles, _ = ax.get_legend_handles_labels()
+
+    ax.legend(
+        handles,
+        wrapped_labels,
+        title=label_name,
+        fontsize=7,
+        loc="upper left",
+        bbox_to_anchor=(1.02, 1.0),
+        borderaxespad=0.0,
+    )
+
+    if created_fig:
+        fig.tight_layout()
+        if show:
+            plt.show()
 
     return fig
 
 # ============================================================
 # Wrappers for specific demographic fields
 # ============================================================
+
 def visualise_gender_stack_across_data(
     data_dict: Dict[str, pd.DataFrame],
     column: str = "Gender",
     top_n: int = 5,
     as_percentage: bool = True,
     show: bool = True,
+    ax: Optional[plt.Axes] = None,
 ):
-    """
-    100%-stacked bar chart of Gender across assessments.
-    """
     return _visualise_stacked_categorical_across_data(
         data_dict=data_dict,
         column=column,
@@ -665,8 +677,8 @@ def visualise_gender_stack_across_data(
         top_n=top_n,
         as_percentage=as_percentage,
         show=show,
+        ax=ax,
     )
-
 
 def visualise_country_stack_across_data(
     data_dict: Dict[str, pd.DataFrame],
@@ -674,10 +686,8 @@ def visualise_country_stack_across_data(
     top_n: int = 10,
     as_percentage: bool = True,
     show: bool = True,
+    ax: Optional[plt.Axes] = None,
 ):
-    """
-    100%-stacked bar chart of CountryOfResidence across assessments.
-    """
     return _visualise_stacked_categorical_across_data(
         data_dict=data_dict,
         column=column,
@@ -686,8 +696,8 @@ def visualise_country_stack_across_data(
         top_n=top_n,
         as_percentage=as_percentage,
         show=show,
+        ax=ax,
     )
-
 
 def visualise_ethnicity_stack_across_data(
     data_dict: Dict[str, pd.DataFrame],
@@ -695,10 +705,8 @@ def visualise_ethnicity_stack_across_data(
     top_n: int = 10,
     as_percentage: bool = True,
     show: bool = True,
+    ax: Optional[plt.Axes] = None,
 ):
-    """
-    100%-stacked bar chart of EthnicOrigin across assessments.
-    """
     return _visualise_stacked_categorical_across_data(
         data_dict=data_dict,
         column=column,
@@ -707,50 +715,8 @@ def visualise_ethnicity_stack_across_data(
         top_n=top_n,
         as_percentage=as_percentage,
         show=show,
+        ax=ax,
     )
-
-
-def visualise_country_of_origin_stack_across_data(
-    data_dict: Dict[str, pd.DataFrame],
-    column: str = "CountryOfOrigin",
-    top_n: int = 10,
-    as_percentage: bool = True,
-    show: bool = True,
-):
-    """
-    100%-stacked bar chart of CountryOfOrigin across assessments.
-    """
-    return _visualise_stacked_categorical_across_data(
-        data_dict=data_dict,
-        column=column,
-        title="Country of Origin Distribution Across Assessments",
-        label_name="Country of origin",
-        top_n=top_n,
-        as_percentage=as_percentage,
-        show=show,
-    )
-
-
-def visualise_marital_status_stack_across_data(
-    data_dict: Dict[str, pd.DataFrame],
-    column: str = "MaritalStatus",
-    top_n: int = 10,
-    as_percentage: bool = True,
-    show: bool = True,
-):
-    """
-    100%-stacked bar chart of MaritalStatus across assessments.
-    """
-    return _visualise_stacked_categorical_across_data(
-        data_dict=data_dict,
-        column=column,
-        title="Marital Status Distribution Across Assessments",
-        label_name="Marital status",
-        top_n=top_n,
-        as_percentage=as_percentage,
-        show=show,
-    )
-
 
 def visualise_education_level_stack_across_data(
     data_dict: Dict[str, pd.DataFrame],
@@ -758,10 +724,8 @@ def visualise_education_level_stack_across_data(
     top_n: int = 10,
     as_percentage: bool = True,
     show: bool = True,
+    ax: Optional[plt.Axes] = None,
 ):
-    """
-    100%-stacked bar chart of EducationLevel across assessments.
-    """
     return _visualise_stacked_categorical_across_data(
         data_dict=data_dict,
         column=column,
@@ -770,30 +734,8 @@ def visualise_education_level_stack_across_data(
         top_n=top_n,
         as_percentage=as_percentage,
         show=show,
+        ax=ax,
     )
-
-
-def visualise_number_of_children_stack_across_data(
-    data_dict: Dict[str, pd.DataFrame],
-    column: str = "NumberOfChildren",
-    top_n: int = 10,
-    as_percentage: bool = True,
-    show: bool = True,
-):
-    """
-    100%-stacked bar chart of NumberOfChildren across assessments.
-    Treats number of children as a categorical variable (0,1,2,...).
-    """
-    return _visualise_stacked_categorical_across_data(
-        data_dict=data_dict,
-        column=column,
-        title="Number of Children Distribution Across Assessments",
-        label_name="Number of children",
-        top_n=top_n,
-        as_percentage=as_percentage,
-        show=show,
-    )
-
 
 def visualise_postcode_stack_across_data(
     data_dict: Dict[str, pd.DataFrame],
@@ -801,10 +743,8 @@ def visualise_postcode_stack_across_data(
     top_n: int = 10,
     as_percentage: bool = True,
     show: bool = True,
+    ax: Optional[plt.Axes] = None,
 ):
-    """
-    100%-stacked bar chart of Postcode across assessments.
-    """
     return _visualise_stacked_categorical_across_data(
         data_dict=data_dict,
         column=column,
@@ -813,8 +753,8 @@ def visualise_postcode_stack_across_data(
         top_n=top_n,
         as_percentage=as_percentage,
         show=show,
+        ax=ax,
     )
-
 
 def visualise_language_stack_across_data(
     data_dict: Dict[str, pd.DataFrame],
@@ -822,10 +762,8 @@ def visualise_language_stack_across_data(
     top_n: int = 10,
     as_percentage: bool = True,
     show: bool = True,
+    ax: Optional[plt.Axes] = None,
 ):
-    """
-    100%-stacked bar chart of PreferredLanguageCode across assessments.
-    """
     return _visualise_stacked_categorical_across_data(
         data_dict=data_dict,
         column=column,
@@ -834,4 +772,115 @@ def visualise_language_stack_across_data(
         top_n=top_n,
         as_percentage=as_percentage,
         show=show,
+        ax=ax,
     )
+
+
+#-------------------------------------------------------------------
+# 7) ASSESSMENT ANALYSIS VISUALS 
+#-------------------------------------------------------------------
+
+def visualise_score_kde_across_attempt_strategies(
+    dfs_dict: Dict[str, pd.DataFrame],
+    assessment_name: Optional[str] = None,
+    score_col: str = "Score",
+    bandwidth: float = 2.0,
+    show: bool = True,
+    ax: Optional[plt.Axes] = None,
+    use_counts: bool = True,     # NEW: choose KDE style
+):
+    """
+    Plot KDE curves for score distributions under different attempt strategies.
+
+    Parameters
+    ----------
+    use_counts : bool
+        If True  -> y-axis ~ participant counts (scaled KDE)
+        If False -> y-axis = normalised density curves (max = 1)
+    """
+    if not dfs_dict:
+        raise ValueError("dfs_dict is empty; provide at least one DataFrame.")
+
+    # --- Extract score series ---
+    score_series = {}
+    for strategy, df in dfs_dict.items():
+        if score_col not in df.columns:
+            raise ValueError(f"'{score_col}' missing in DataFrame for '{strategy}'.")
+
+        s = pd.to_numeric(df[score_col], errors="coerce").dropna()
+        if len(s) > 0:
+            score_series[strategy] = s
+
+    if not score_series:
+        raise ValueError(f"No valid scores found for '{score_col}' in any DataFrame.")
+
+    # --- Global x-range ---
+    all_scores = pd.concat(score_series.values())
+    x_vals = np.linspace(all_scores.min(), all_scores.max(), 300)
+    dx = x_vals[1] - x_vals[0]
+
+    # KDE
+    def kde_1d(values: pd.Series, x, bw: float):
+        arr = values.values.reshape(-1, 1)
+        return (
+            np.mean(
+                np.exp(-0.5 * ((x.reshape(-1, 1) - arr.T) / bw) ** 2),
+                axis=1,
+            )
+            / (bw * np.sqrt(2 * np.pi))
+        )
+
+    # --- Figure / axis setup ---
+    created_fig = False
+    if ax is None:
+        fig, ax = plt.subplots(figsize=(10, 6))
+        created_fig = True
+    else:
+        fig = ax.figure
+
+    colours = plt.rcParams["axes.prop_cycle"].by_key()["color"]
+
+    for i, (strategy, s) in enumerate(score_series.items()):
+        y = kde_1d(s, x_vals, bandwidth)
+
+        if use_counts:
+            # scale so area ≈ participant count
+            area = y.sum() * dx
+            y_scaled = y * (len(s) / area if area > 0 else 0)
+        else:
+            # normalise height
+            y_scaled = y / y.max() if y.max() > 0 else y
+
+        label = f"{strategy.capitalize()} attempt (n={len(s)})"
+        ax.plot(
+            x_vals,
+            y_scaled,
+            label=label,
+            linewidth=2,
+            color=colours[i % len(colours)],
+        )
+
+    ax.set_xlabel("Score")
+
+    if use_counts:
+        ax.set_ylabel("Approximate participant count")
+    else:
+        ax.set_ylabel("Relative density (normalised KDE)")
+
+    if assessment_name:
+        title = f"{assessment_name}"
+    else:
+        title = "Score distributions by attempt strategy"
+
+    ax.set_title(title)
+    ax.legend(fontsize=8)
+
+    if created_fig:
+        fig.tight_layout()
+        if show:
+            plt.show()
+
+    return fig
+
+
+

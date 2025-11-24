@@ -3,6 +3,11 @@ import sys
 import pandas as pd
 from pathlib import Path
 import matplotlib.pyplot as plt
+import numpy as np
+import matplotlib.pyplot as plt
+import numpy as np
+from PIL import Image
+import io
 
 #  Compute project directories
 SCRIPT_DIR = Path(__file__).resolve().parent
@@ -16,13 +21,12 @@ from init_core.viz import (
     visualise_age_curves_across_data,
     visualise_gender_stack_across_data,
     visualise_country_stack_across_data,
-    visualise_country_of_origin_stack_across_data,
     visualise_ethnicity_stack_across_data,
-    visualise_marital_status_stack_across_data,
     visualise_education_level_stack_across_data,
-    visualise_number_of_children_stack_across_data,
     visualise_postcode_stack_across_data,
     visualise_language_stack_across_data,
+
+    visualise_score_kde_across_attempt_strategies
 )
 
 RAW_DATA_DIR = PROJECT_ROOT / "data" / "raw"
@@ -62,66 +66,162 @@ def assert_raw_paths():
 
 def get_cleaned_dict():
     data_dict = {
-        "QuickCalc": get_cleaned_responses(pd.read_csv(QUICKCALC_RAW)),
-        "EyeBall": get_cleaned_responses(pd.read_csv(EYEBALL_RAW)),
-        "MatchBack": get_cleaned_responses(pd.read_csv(MATCHBACK_RAW)),
-        "MemoryGrid": get_cleaned_responses(pd.read_csv(MEMORYGRID_RAW)),
-        "NumberRecall": get_cleaned_responses(pd.read_csv(NUMBERRECAL_RAW)),
-        "Pyramids": get_cleaned_responses(pd.read_csv(PYRAMIDS_RAW)),
-        "RapidFlag": get_cleaned_responses(pd.read_csv(RAPIDFLAG_RAW)),
-        "Gyrate": get_cleaned_responses(pd.read_csv(GYRATE_RAW)),
+        "QuickCalc": get_cleaned_responses(pd.read_csv(QUICKCALC_RAW),attempt_mode="first"),
+        "EyeBall": get_cleaned_responses(pd.read_csv(EYEBALL_RAW),attempt_mode="first"),
+        "MatchBack": get_cleaned_responses(pd.read_csv(MATCHBACK_RAW),attempt_mode="first"),
+        "MemoryGrid": get_cleaned_responses(pd.read_csv(MEMORYGRID_RAW),attempt_mode="first"),
+        "NumberRecall": get_cleaned_responses(pd.read_csv(NUMBERRECAL_RAW),attempt_mode="first"),
+        "Pyramids": get_cleaned_responses(pd.read_csv(PYRAMIDS_RAW),attempt_mode="first"),
+        "RapidFlag": get_cleaned_responses(pd.read_csv(RAPIDFLAG_RAW),attempt_mode="first"),
+        "Gyrate": get_cleaned_responses(pd.read_csv(GYRATE_RAW),attempt_mode="first"),
     }
     return data_dict
 
-def save_all_demographic_plots(show=False):
+def save_all_demographic_plots(show: bool = False):
     """
-    Generate and save ALL demographic plots from init_core.viz
-    into data/diagnostics/. Returns a dict of figure objects.
+    Generate ONE combined demographic figure with subplots
+    and external legends.
     """
     data_dict = get_cleaned_dict()
-    figs = {}
 
-    figs["age_distribution"] = visualise_age_curves_across_data(
-        data_dict, show=show
+    plot_specs = [
+        ("age_distribution", visualise_age_curves_across_data),
+        ("gender_distribution", visualise_gender_stack_across_data),
+        ("country_of_residence_distribution", visualise_country_stack_across_data),
+        ("ethnic_origin_distribution", visualise_ethnicity_stack_across_data),
+        ("education_level_distribution", visualise_education_level_stack_across_data),
+        ("language_distribution", visualise_language_stack_across_data),
+    ]
+
+    n = len(plot_specs)
+    n_cols = 2
+    n_rows = int(np.ceil(n / n_cols))
+
+    fig, axes = plt.subplots(
+        n_rows,
+        n_cols,
+        figsize=(6 * n_cols, 4 * n_rows),
+        squeeze=False,
     )
-    figs["gender_distribution"] = visualise_gender_stack_across_data(
-        data_dict, show=show
-    )
-    figs["country_of_residence_distribution"] = visualise_country_stack_across_data(
-        data_dict, show=show
-    )
-    #figs["country_of_origin_distribution"] = visualise_country_of_origin_stack_across_data(
-    #    data_dict, show=show
-    #)
-    figs["ethnic_origin_distribution"] = visualise_ethnicity_stack_across_data(
-        data_dict, show=show
-    )
-    #figs["marital_status_distribution"] = visualise_marital_status_stack_across_data(
-    #    data_dict, show=show
-    #)
-    figs["education_level_distribution"] = visualise_education_level_stack_across_data(
-        data_dict, show=show
-    )
-    #figs["number_of_children_distribution"] = visualise_number_of_children_stack_across_data(
-    #    data_dict, show=show
-    #)
-    figs["postcode_distribution"] = visualise_postcode_stack_across_data(
-        data_dict, show=show
-    )
-    figs["language_distribution"] = visualise_language_stack_across_data(
-        data_dict, show=show
+    axes = axes.ravel()
+    for ax, (name, fn) in zip(axes, plot_specs):
+        fn(data_dict, show=False, ax=ax)
+
+    # Hide empty axes
+    for ax in axes[n:]:
+        ax.set_visible(False)
+
+    # Title
+    fig.suptitle(
+        "Demographic Distributions Across Assessments",
+        fontsize=18,
+        x=0.39,
+        y=0.96
     )
 
-    # ----------------------
-    # SAVE ALL FIGURES
-    # ----------------------
-    for name, fig in figs.items():
-        save_path = OUTPUT_DIR / f"{name}.png"
-        fig.savefig(save_path, dpi=200, bbox_inches="tight")
-        plt.close(fig)
+    # Allow space for legends on the right
+    fig.subplots_adjust(
+        right=0.85,    # <-- key: leaves space for external legends
+        hspace=0.5,
+        wspace=0.5
+    )
+    fig.tight_layout(rect=(0, 0, 0.78, 0.93))
+    save_path = OUTPUT_DIR / "demographic_distributions_combined.png"
+    fig.savefig(save_path, dpi=200, bbox_inches="tight")
 
-    return figs
+    if show:
+        plt.show()
 
+    return fig
+
+def save_assessment_analysis_plots(show: bool = False):
+
+    ASSESSMENT_FILES = {
+        "MatchBack": MATCHBACK_RAW,
+        "MemoryGrid": MEMORYGRID_RAW,
+        "NumberRecall": NUMBERRECAL_RAW,
+        "QuickCalc": QUICKCALC_RAW,
+        "RapidFlag": RAPIDFLAG_RAW,
+        "Gyrate": GYRATE_RAW,
+    }
+
+    individual_figs = {}
+    combined_fig = None
+
+    # ---------- Individual figures ----------
+    for name, path in ASSESSMENT_FILES.items():
+        df_raw = pd.read_csv(path, low_memory=False)
+
+        dfs_dict = {
+            "first": get_cleaned_responses(df_raw, attempt_mode="first"),
+            "last":  get_cleaned_responses(df_raw, attempt_mode="last"),
+            "best":  get_cleaned_responses(df_raw, attempt_mode="best"),
+            "all":   get_cleaned_responses(df_raw, attempt_mode="all"),
+        }
+
+        fig = visualise_score_kde_across_attempt_strategies(
+            dfs_dict=dfs_dict,
+            assessment_name=name,
+            score_col="Score",
+            show=False,
+            use_counts=False
+        )
+
+        #fig.savefig(OUTPUT_DIR / f"{name}_score_attempt_strategies_norm.png", dpi=200, bbox_inches="tight")
+        individual_figs[name] = fig
+
+    # ---------- Combined multi-panel figure ----------
+    n = len(ASSESSMENT_FILES)
+    n_cols = 3
+    n_rows = int(np.ceil(n / n_cols))
+
+    combined_fig, axes = plt.subplots(
+        n_rows,
+        n_cols,
+        figsize=(5 * n_cols, 3.5 * n_rows),
+        squeeze=False,
+    )
+    axes = axes.ravel()
+
+    for ax, (name, path) in zip(axes, ASSESSMENT_FILES.items()):
+        df_raw = pd.read_csv(path, low_memory=False)
+
+        dfs_dict = {
+            "first": get_cleaned_responses(df_raw, attempt_mode="first"),
+            "last":  get_cleaned_responses(df_raw, attempt_mode="last"),
+            "best":  get_cleaned_responses(df_raw, attempt_mode="best"),
+            "all":   get_cleaned_responses(df_raw, attempt_mode="all"),
+        }
+
+        visualise_score_kde_across_attempt_strategies(
+            dfs_dict=dfs_dict,
+            assessment_name=name,
+            score_col="Score",
+            show=False,
+            use_counts = False,
+            ax=ax,  # draw onto this subplot
+        )
+
+    # Hide unused axes if any
+    for ax in axes[len(ASSESSMENT_FILES):]:
+        ax.set_visible(False)
+
+    combined_fig.suptitle(
+        "Score Distributions by Attempt Strategy Across Assessments",
+        y=0.99,
+    )
+    combined_fig.tight_layout()
+
+    combined_fig.savefig(
+        OUTPUT_DIR / "all_assessments_score_attempt_strategies_norm.png",
+        dpi=200,
+        bbox_inches="tight",
+    )
+
+    if show:
+        plt.show()
+
+    return individual_figs, combined_fig
 
 if __name__ == "__main__":
     save_all_demographic_plots()
