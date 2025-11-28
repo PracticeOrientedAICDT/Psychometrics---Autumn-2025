@@ -383,7 +383,7 @@ def plot_posteriors_overlay(posters: List[Posterior], outpath: Optional[str], ti
     tg = posters[0].theta_grid
     n = len(posters)
     for i, p in enumerate(posters):
-        dens = p.density / (np.trapezoid(p.density, tg) + 1e-15)
+        dens = p.density / (np.trapz(p.density, tg) + 1e-15)
         color = cmap(i / max(1, n - 1))
         ax.plot(tg, dens, color=color, alpha=0.9 if i == n - 1 else 0.6)
         ax.plot([p.mean], [np.interp(p.mean, tg, dens)], "o", ms=3, color=color)
@@ -453,7 +453,7 @@ def parse_args():
     ap.add_argument("--prior-mu", type=float, default=0.0)
     ap.add_argument("--prior-sd", type=float, default=1.0)
     ap.add_argument("--save", default=None)
-    ap.add_argument("--outdir", default="data/QuickCalc/plots")
+    ap.add_argument("--outdir", default=None)
     ap.add_argument("--seed", type=int, default=None)
     return ap.parse_args()
 
