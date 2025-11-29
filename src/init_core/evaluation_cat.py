@@ -229,33 +229,6 @@ def scatter_est_vs_true(df: pd.DataFrame, outdir: str, prefix: str):
     print(f"Saved {p}")
 
 
-def marginal_reliability_from_se_normal(
-    agg: pd.DataFrame, prior_mu: float = 0.0, prior_sd: float = 1.0
-) -> float:
-    """
-    Marginal reliability assuming theta ~ N(prior_mu, prior_sd^2),
-    using model-implied posterior SEs from the aggregated results.
-
-    Uses a discretized approximation over the theta grid in `agg`,
-    weighted by the normal density at each theta_true.
-    """
-    thetas = agg["theta_true"].values
-    se2 = agg["se_mean"].values ** 2
-
-    # Weights ∝ normal density N(prior_mu, prior_sd^2) evaluated at each theta
-    z = (thetas - prior_mu) / prior_sd
-    w_raw = np.exp(-0.5 * z**2)
-    w = w_raw / w_raw.sum()  # normalize to sum to 1
-
-    # Population mean and variance (under this discretized normal)
-    mu_theta = np.sum(w * thetas)
-    var_theta = np.sum(w * (thetas - mu_theta) ** 2)
-
-    # Expected posterior variance under the same weighting
-    mean_post_var = np.sum(w * se2)
-
-    return 1.0 - mean_post_var / var_theta
-
 
 def main():
     ap = argparse.ArgumentParser(description="Sweep true-theta and plot error metrics")
@@ -312,13 +285,6 @@ def main():
     prefix = f"sweep_{args.mode}"
     plot_curves(agg, args.outdir, prefix)
     scatter_est_vs_true(df, args.outdir, prefix)
-
-    # Marginal reliability assuming theta ~ N(prior_mu, prior_sd^2),
-    # using model-based posterior SEs (EAP-style IRT marginal reliability)
-    rho_se = marginal_reliability_from_se_normal(
-        agg, prior_mu=args.prior_mu, prior_sd=args.prior_sd
-    )
-    print(f"Marginal reliability (normal, from SEs): {rho_se:.3f}")
 
 
 if __name__ == "__main__":
