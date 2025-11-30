@@ -143,7 +143,7 @@ def plot_icc(
       - "none":   no labels
     """
     if title is None:
-        title= f"{assessment_name}: IRT Analysis"
+        title= f"{assessment_name}: ICC"
     # --- Identify identifier column ---
     if "QuestionID" in item_params_df.columns:
         id_col = "QuestionID"
@@ -217,7 +217,7 @@ def plot_icc(
         P = c + (1 - c) / (1 + np.exp(-a * (theta - b)))
         h, = ax.plot(theta, P, color=colors[i], linewidth=2)
         handles.append(h)
-        labels.append(str(qid))
+        labels.append(str(i+1))
 
     # Axes formatting
     ax.set_xlabel("Ability (θ)")
@@ -225,17 +225,19 @@ def plot_icc(
     ax.set_ylim(0, 1)
     ax.set_xlim(lo, hi)     # <- no bigger than requested/domain range
     ax.margins(x=0)         # <- disable extra matplotlib padding on x
-    ax.set_title(title,fontweight="bold",pad=25,fontsize=16)
-    ax.text(0.5, 1.02, "Item Characteristic Curves",
-        transform=ax.transAxes,
-        ha="center", va="bottom", fontsize=12)
+    ax.set_title(title,fontweight="bold",fontsize=10)
+    #ax.text(0.5, 1.02, "Item Characteristic Curves",
+    #    transform=ax.transAxes,
+    #    ha="center", va="bottom", fontsize=12)
 
 
     # ----- Labeling strategies -----
     if label_mode.lower() == "inline":
         # Place each label at θ ≈ b (inflection), y = c + (1-c)/2; clip to visible range
+
         for i, row in enumerate(df.itertuples(index=False)):
             a, b, c = float(getattr(row, "a")), float(getattr(row, "b")), float(getattr(row, "c"))
+            
             qid = getattr(row, id_col)
 
             x = float(np.clip(b, lo, hi))  # keep inside frame
@@ -257,6 +259,7 @@ def plot_icc(
                 bbox=dict(boxstyle="round,pad=0.15", fc="white", ec="none", alpha=0.6),
                 arrowprops=dict(arrowstyle="-", color=colors[i], lw=0.8, alpha=0.8),
             )
+       
 
     elif label_mode.lower() == "legend_out":
         items_per_col = 18
@@ -305,12 +308,16 @@ def simulated_plot_comparison(
     simulated_scores_df=None,
     normalised_scores=False,
     bins=25,
-    title = None,
-    save_path = None
+    title=None,
+    save_path=None,
+    ax=None
 ):
-    fig, ax = plt.subplots(figsize=(12, 6))
+    # If no axis supplied, create standalone figure
+    standalone = False
+    if ax is None:
+        fig, ax = plt.subplots(figsize=(12, 6))
+        standalone = True
 
-    # Extract arrays
     real_scores = scores_df["Score"].dropna().values
     sim_scores  = simulated_scores_df["Score"].dropna().values
 
@@ -319,57 +326,41 @@ def simulated_plot_comparison(
         real_scores = real_scores / real_scores.max()
         sim_scores  = sim_scores / sim_scores.max()
 
-    # Plot histograms overlapped
-    sns.histplot(
-        real_scores,
-        bins=bins,
-        kde=False,
-        color="royalblue",
-        alpha=0.35,
-        label="Observed Scores",
-        ax=ax,
-        stat="density"
-    )
-    sns.kdeplot(
-        real_scores,
-        color="royalblue",
-        linewidth=2,
-        ax=ax
-    )
+    # ---- Observed Scores ----
+    sns.histplot(real_scores, bins=bins, kde=False,
+                 color="royalblue", alpha=0.35,
+                 ax=ax, stat="density", label="Observed Scores")
+    sns.kdeplot(real_scores,
+                color="royalblue", linewidth=2,
+                ax=ax)
 
-    # Histogram + KDE for simulated
-    sns.histplot(
-        sim_scores,
-        bins=bins,
-        kde=False,
-        color="darkorange",
-        alpha=0.35,
-        label="Simulated Scores",
-        ax=ax,
-        stat="density"
-    )
-    sns.kdeplot(
-        sim_scores,
-        color="darkorange",
-        linewidth=2,
-        ax=ax
-    )
-    # Labels and aesthetics
+    # ---- Simulated Scores ----
+    sns.histplot(sim_scores, bins=bins, kde=False,
+                 color="darkorange", alpha=0.35,
+                 ax=ax, stat="density", label="Simulated Scores")
+    sns.kdeplot(sim_scores,
+                color="darkorange", linewidth=2,
+                ax=ax)
+
+    # --- Labels, Titles ---
     if title is None:
         title = f"{assessment_name}: Score Distributions"
-    ax.set_title(title, fontsize=16, fontweight="bold")
+
+    ax.set_title(title, fontsize=14, fontweight="bold")
     ax.set_xlabel("Score")
     ax.set_ylabel("Density")
+
+    # --- Force legend (now labels definitely exist) ---
     ax.legend()
 
-    plt.tight_layout()
-    if save_path is not None:
-        save_path = Path(save_path)  # ensure it's a Path
+    # Save only if standalone figure
+    if save_path is not None and standalone:
+        save_path = Path(save_path)
         save_path.parent.mkdir(parents=True, exist_ok=True)
         fig.savefig(save_path, dpi=300, bbox_inches="tight")
-        print(f"Figure saved to: {save_path}")
 
-    return fig
+    if standalone:
+        return fig
 
 def raw_sim_tuned_comparison_plot(assessment_name,
                           scores_df = None,
