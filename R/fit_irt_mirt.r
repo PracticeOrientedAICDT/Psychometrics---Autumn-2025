@@ -1,30 +1,14 @@
-#' Fit a unidimensional 3PL IRT model with mirt and save outputs
-#'
-#' @param input_csv        Path to a wide CSV (rows = persons, cols = items; 0/1; NA allowed).
-#'                         May include an ID column (e.g., "participant_id" or "AccountId").
-#' @param out_abilities_csv Path to write the abilities (EAP thetas). Default "abilities.csv".
-#' @param out_items_csv     Path to write item parameters (a, b, c). Default "item_params.csv".
-#' @param id_cols          Candidate ID column names (first present will be used).
-#' @param n_factors        Number of latent factors (default 1).
-#' @param itemtype         mirt item type (default "3PL").
-#' @param method           Estimation method for mirt() (default "EM").
-#' @param verbose          Verbosity for mirt() (default FALSE).
-#'
-#' @return (invisibly) a list with elements: abilities_df, items_df, fit
-#' @examples
-#' fit_irt_3pl(
-#'   input_csv = "data/WordMatch/mirt_in.csv",
-#'   out_abilities_csv = "out/abilities.csv",
-#'   out_items_csv = "out/item_params.csv"
-#' )
 fit_irt <- function(input_csv,
-                        out_abilities_csv = "abilities.csv",
-                        out_items_csv    = "item_params.csv",
-                        id_cols          = c("participant_id", "AccountId"),
-                        n_factors        = 1,
-                        itemtype         = "3PL",
-                        method           = "EM",
-                        verbose          = FALSE) {
+                    out_abilities_csv = "abilities.csv",
+                    out_items_csv    = "item_params.csv",
+                    id_cols          = c("participant_id", "AccountId"),
+                    n_factors        = 1,
+                    itemtype         = "3PL",
+                    method           = "EM",
+                    verbose          = FALSE,
+                    mirt_args        = list(),
+                    technical        = list()) {
+
   if (!requireNamespace("mirt", quietly = TRUE)) {
     stop("Package 'mirt' is required but not installed. Install with install.packages('mirt').")
   }
@@ -52,11 +36,20 @@ fit_irt <- function(input_csv,
   dat_mat <- as.data.frame(dat)
 
   # --- Fit IRT model ---
-  fit <- mirt::mirt(dat_mat,
-                    model   = n_factors,
-                    itemtype = itemtype,
-                    method   = method,
-                    verbose  = verbose)
+  # Build argument list for mirt::mirt
+  mirt_call_args <- c(
+    list(
+      data     = dat_mat,
+      model    = n_factors,
+      itemtype = itemtype,
+      method   = method,
+      verbose  = verbose,
+      technical = technical
+    ),
+    mirt_args  # this can contain SE, quadpts, etc.
+  )
+
+  fit <- do.call(mirt::mirt, mirt_call_args)
 
   # --- Extract item parameters (IRT parameterization) ---
   co <- mirt::coef(fit, IRTpars = TRUE, simplify = TRUE)
@@ -114,3 +107,4 @@ fit_irt <- function(input_csv,
 
   invisible(list(abilities_df = abilities_df, items_df = items_df, fit = fit))
 }
+
