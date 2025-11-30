@@ -143,6 +143,8 @@ def save_assessment_analysis_plots(show: bool = False):
         "QuickCalc": QUICKCALC_RAW,
         "RapidFlag": RAPIDFLAG_RAW,
         "Gyrate": GYRATE_RAW,
+        "EyeBall": EYEBALL_RAW,
+        "Pyramids": PYRAMIDS_RAW,
     }
 
     individual_figs = {}
@@ -223,5 +225,17 @@ def save_assessment_analysis_plots(show: bool = False):
 
     return individual_figs, combined_fig
 
+def print_sample_sizes_and_unique_groups(paths):
+    for path in paths:
+        df = pd.read_csv(path)
+        sample_size = len(df)
+
+        if "AccountId" in df.columns:
+            unique_groups = df["AccountId"].nunique()
+        else:
+            unique_groups = "AccountId column not found"
+
+        print(f"{path}: N={sample_size}, unique AccountId groups={unique_groups}")
+
 if __name__ == "__main__":
-    save_all_demographic_plots()
+    save_assessment_analysis_plots(show=True)
