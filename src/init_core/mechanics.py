@@ -1,17 +1,22 @@
 import numpy as np
 import pandas as pd
-from sklearn.neighbors import KNeighborsRegressor
 from sklearn.multioutput import MultiOutputRegressor
+from sklearn.pipeline import make_pipeline
+from sklearn.preprocessing import PolynomialFeatures
+from sklearn.linear_model import Ridge
 from typing import Iterable, Optional, Dict, Tuple, List
 
-class MechanicsPredictor:
-    """
-    KNN multi-output regressor mapping feature_cols -> mechanics.
 
-    - By default uses feature_cols = ["a", "b"], but you can pass ["b"] (or
-      any other numeric columns) if you want to interpolate only on b.
-    - Trains on rows where all feature_cols and all target mechanics columns
-      are present (no NaNs).
+class MechanicsRegressor:
+    """
+    Multi-output regression mapping feature_cols -> mechanics.
+
+    - By default uses feature_cols = ["a", "b"], but you can pass ["b"] or any
+      numeric subset of columns.
+    - Uses a polynomial regression model with Ridge regularisation to learn a
+      smooth global mapping f(a, b) -> mechanics.
+    - Works better than KNN for extrapolation when new (a, b) fall outside the
+      range seen in the training data.
     - Can optionally:
         * round selected mechanics to integers (int_mech_cols)
         * clip mechanics to specified ranges (clip_config)
@@ -19,24 +24,39 @@ class MechanicsPredictor:
 
     def __init__(
         self,
-        k: int = 5,
-        weights: str = "distance",
+        degree: int = 2,
+        alpha: float = 1.0,
         feature_cols: Optional[Iterable[str]] = None,
         int_mech_cols: Optional[Iterable[str]] = None,
         clip_config: Optional[Dict[str, Tuple[float, float]]] = None,
     ):
-        self.k = k
-        self.weights = weights
-        self.model = MultiOutputRegressor(
-            KNeighborsRegressor(n_neighbors=k, weights=weights)
-        )
-
-        # which columns to use as inputs, e.g. ["a", "b"] or ["b"]
+        """
+        Parameters
+        ----------
+        degree : int, default 2
+            Polynomial degree for the regression surface (1 = linear, 2 = quadratic).
+        alpha : float, default 1.0
+            Ridge regularisation strength (higher = smoother, less flexible).
+        feature_cols : Iterable[str], optional
+            Names of feature columns, e.g. ["a", "b"] or just ["b"].
+        int_mech_cols : Iterable[str], optional
+            Mechanics columns to round to integers after prediction.
+        clip_config : dict, optional
+            Dict mapping column name -> (min, max) to clip mechanics into ranges.
+        """
+        # which columns to use as inputs
         if feature_cols is None:
             feature_cols = ["a", "b"]
         self.feature_cols_: List[str] = list(feature_cols)
 
-        self.trained_cols_: Optional[List[str]] = None   # mechanics cols actually used
+        # polynomial + ridge model wrapped in MultiOutputRegressor
+        base_model = make_pipeline(
+            PolynomialFeatures(degree=degree),
+            Ridge(alpha=alpha)
+        )
+        self.model = MultiOutputRegressor(base_model)
+
+        self.trained_cols_: Optional[List[str]] = None  # mechanics cols actually used
         self.int_mech_cols_ = list(int_mech_cols) if int_mech_cols is not None else []
         self.clip_config_ = clip_config if clip_config is not None else {}
 
@@ -45,7 +65,7 @@ class MechanicsPredictor:
     # ------------------------------------------------------------------ #
     def fit(self, df: pd.DataFrame, mech_cols: Optional[Iterable[str]] = None):
         """
-        Fit the KNN model on a DataFrame with columns feature_cols_ + mechanics.
+        Fit the regression model on a DataFrame with columns feature_cols_ + mechanics.
 
         Parameters
         ----------
