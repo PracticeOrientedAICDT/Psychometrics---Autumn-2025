@@ -1,4 +1,4 @@
-fit_irt <- function(input_csv,
+fit_irt_mirt <- function(input_csv,
                     out_abilities_csv = "abilities.csv",
                     out_items_csv    = "item_params.csv",
                     id_cols          = c("participant_id", "AccountId"),
@@ -36,17 +36,16 @@ fit_irt <- function(input_csv,
   dat_mat <- as.data.frame(dat)
 
   # --- Fit IRT model ---
-  # Build argument list for mirt::mirt
   mirt_call_args <- c(
     list(
-      data     = dat_mat,
-      model    = n_factors,
-      itemtype = itemtype,
-      method   = method,
-      verbose  = verbose,
+      data      = dat_mat,
+      model     = n_factors,
+      itemtype  = itemtype,
+      method    = method,
+      verbose   = verbose,
       technical = technical
     ),
-    mirt_args  # this can contain SE, quadpts, etc.
+    mirt_args
   )
 
   fit <- do.call(mirt::mirt, mirt_call_args)
@@ -108,3 +107,24 @@ fit_irt <- function(input_csv,
   invisible(list(abilities_df = abilities_df, items_df = items_df, fit = fit))
 }
 
+fit_irt_safe <- function(...) {
+  tryCatch(
+    {
+      res <- fit_irt_mirt(...)   # call the original
+      res$success <- TRUE
+      res$reason  <- "ok"
+      res
+    },
+    error = function(e) {
+      warning("fit_irt_mirt failed: ", conditionMessage(e))
+      list(
+        success      = FALSE,
+        reason       = "mirt_error",
+        error        = e,
+        abilities_df = NULL,
+        items_df     = NULL,
+        fit          = NULL
+      )
+    }
+  )
+}
