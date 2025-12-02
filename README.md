@@ -2,4 +2,4 @@
  Psychometrics practial project 
 ## 📚 Documentation
 
-- **[Literature Review (PDF)](docs/literature_review.pdf)** – Overview of recent developments in Item Response Theory (IRT), including Deep IRT, Bayesian extensions, and adaptive cognitive assessment methods.
+- **[Literature Review (PDF)](docs/lit_review_IRT.pdf)** – Overview of recent developments in Item Response Theory (IRT), including Deep IRT, Bayesian extensions, and adaptive cognitive assessment methods.
