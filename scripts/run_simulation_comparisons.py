@@ -229,11 +229,11 @@ def compose_icc_plots_one_figure():
     # ✅ remove the 6th axis visually
     axes[5].axis("off")
 
-    plot_icc(pd.read_csv(G_ITEMS), assessment_name="Gyrate", ax=axes[0])
-    plot_icc(pd.read_csv(Q_ITEMS), assessment_name="QuickCalc", ax=axes[1])
-    plot_icc(pd.read_csv(E_ITEMS), assessment_name="Gyrate", ax=axes[2])
-    plot_icc(pd.read_csv(P_ITEMS), assessment_name="Pyramids", ax=axes[3])
-    plot_icc(pd.read_csv(M_ITEMS), assessment_name="MatchBack", ax=axes[4])
+    plot_icc(pd.read_csv(G_ITEMS), assessment_name="Gyrate", ax=axes[1])
+    plot_icc(pd.read_csv(Q_ITEMS), assessment_name="QuickCalc", ax=axes[0])
+    plot_icc(pd.read_csv(E_ITEMS), assessment_name="EyeBall", ax=axes[3])
+    plot_icc(pd.read_csv(P_ITEMS), assessment_name="Pyramids", ax=axes[4])
+    plot_icc(pd.read_csv(M_ITEMS), assessment_name="MemoryGrid", ax=axes[2])
 
     fig.tight_layout(rect=[0, 0, 1, 0.95])
     plt.show()
