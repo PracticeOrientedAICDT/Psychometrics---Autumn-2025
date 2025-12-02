@@ -3,7 +3,7 @@ from __future__ import annotations
 from typing import Optional, List
 import pandas as pd
 from typing import Hashable
-
+import numpy as np
     
 def get_cleaned_responses(
     df: pd.DataFrame,
@@ -146,5 +146,72 @@ def filter_to_best_attempt_per_account(
 
     return result
 
+def build_irt_matrix_from_collapsed(
+    df: pd.DataFrame,
+    account_col: str = "AccountId",
+    level_col: str = "Level",
+    failed_col: str = "FailedLevels",
+    keep_account_col: bool = False
+) -> pd.DataFrame:
+    """
+    Turn collapsed responses (one row per AccountId) into a wide IRT matrix.
 
+    For each AccountId:
+      - Determine max item index as max(Level) - 1 across the whole df.
+      - Set all items 1..(Level-1) = 1 (passed),
+      - Set all items >= Level = 0 (not reached / not passed),
+      - Then override: the item indicated by the FIRST value in FailedLevels
+        (e.g. '2' in '2:4:5') is forced to 0.
+    """
+
+    # Ensure Level is numeric
+    level_vals = pd.to_numeric(df[level_col], errors="coerce")
+    max_level = int(level_vals.max())
+    max_item = max_level - 1
+
+    if max_item < 1:
+        raise ValueError(f"Computed max_item = {max_item}, check Level column.")
+
+    item_cols = [str(i) for i in range(1, max_item + 1)]
+
+    n = len(df)
+    mat = np.zeros((n, max_item), dtype=int)
+
+    df_reset = df.reset_index(drop=True)
+
+    for idx, row in df_reset.iterrows():
+        lvl = row[level_col]
+
+        # Try to interpret Level as int
+        try:
+            lvl_int = int(lvl)
+        except (TypeError, ValueError):
+            lvl_int = None
+
+        # Set all items < Level to 1
+        if lvl_int is not None and lvl_int > 1:
+            mat[idx, : (lvl_int - 1)] = 1
+
+        # FailedLevels: only FIRST value before ':' is the failed item
+        failed_raw = row[failed_col]
+
+        if pd.notna(failed_raw):
+            failed_str = str(failed_raw).strip()
+            if failed_str:
+                # take only the first number before ':'
+                first_token = failed_str.split(":")[0].strip()
+                try:
+                    item_idx = int(first_token)
+                except ValueError:
+                    item_idx = None
+
+                if item_idx is not None and 1 <= item_idx <= max_item:
+                    mat[idx, item_idx - 1] = 0
+
+    wide = pd.DataFrame(mat, columns=item_cols)
+    wide.insert(0, account_col, df_reset[account_col].values)
+    if keep_account_col:
+        wide = wide.drop(columns=["AccountId"])
+
+    return wide
 
