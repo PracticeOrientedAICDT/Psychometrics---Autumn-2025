@@ -16,18 +16,25 @@ fit_irt_mirt <- function(input_csv,
   # --- Load data ---
   dat <- utils::read.csv(input_csv, check.names = FALSE, stringsAsFactors = FALSE)
 
-  # Detect and separate person IDs (first matching column name wins)
-  id_col <- NULL
+  # --- Detect and separate person IDs (AccountId or participant_id) ---
+  id_cols <- c("AccountId", "participant_id")  # priority order
+  id_col  <- NULL
+
   for (nm in id_cols) {
-    if (nm %in% names(dat)) { id_col <- nm; break }
+    if (nm %in% names(dat)) {
+      id_col <- nm
+      break
+    }
   }
 
   if (!is.null(id_col)) {
     person_ids <- as.character(dat[[id_col]])
-    dat[[id_col]] <- NULL
+    dat[[id_col]] <- NULL  # remove ID column before fitting
   } else {
     person_ids <- paste0("P", seq_len(nrow(dat)))
+    warning("⚠️ No AccountId or participant_id column found; using generated fallback IDs")
   }
+
 
   if (ncol(dat) == 0L) stop("No item columns found after removing ID column(s).")
 
@@ -128,3 +135,69 @@ fit_irt_safe <- function(...) {
     }
   )
 }
+
+# =======================
+# CLI entry point
+# =======================
+if (sys.nframe() == 0) {  # only run when called as a script
+  args <- commandArgs(trailingOnly = TRUE)
+
+  get_arg <- function(flag, default = NULL) {
+    if (flag %in% args) {
+      i <- which(args == flag)
+      if (i < length(args)) args[[i + 1]] else default
+    } else {
+      default
+    }
+  }
+
+  input_csv     <- get_arg("--input")
+  out_abilities <- get_arg("--out_abilities", "abilities.csv")
+  out_items     <- get_arg("--out_items", "item_params.csv")
+  n_factors     <- as.integer(get_arg("--factors", "1"))
+  itemtype_arg  <- get_arg("--itemtype", "3PL")
+  method_arg    <- get_arg("--method", "EM")
+  verbose_arg   <- "--verbose" %in% args
+
+  # Optional EM cycle control from CLI
+  max_em_arg    <- get_arg("--max_cycles", NA)
+  if (!is.na(max_em_arg)) {
+    max_em <- as.integer(max_em_arg)
+  } else {
+    max_em <- NA_integer_
+  }
+
+  if (is.null(input_csv) || is.na(input_csv) || input_csv == "") {
+    stop("Missing required --input argument")
+  }
+
+  message("Running fit_irt_mirt with:")
+  message("  input_csv     = ", input_csv)
+  message("  out_abilities = ", out_abilities)
+  message("  out_items     = ", out_items)
+  message("  n_factors     = ", n_factors)
+  message("  itemtype      = ", itemtype_arg)
+  message("  method        = ", method_arg)
+  message("  verbose       = ", verbose_arg)
+  message("  max_cycles    = ", ifelse(is.na(max_em), "default", max_em))
+
+  technical <- list()
+  if (!is.na(max_em)) {
+    # ✅ this is the correct mirt technical name
+    technical$NCYCLES <- max_em
+  }
+
+  res <- fit_irt_mirt(
+    input_csv         = input_csv,
+    out_abilities_csv = out_abilities,
+    out_items_csv     = out_items,
+    n_factors         = n_factors,
+    itemtype          = itemtype_arg,
+    method            = method_arg,
+    verbose           = verbose_arg,
+    technical         = technical
+  )
+
+  message("Done. Files written.")
+}
+
