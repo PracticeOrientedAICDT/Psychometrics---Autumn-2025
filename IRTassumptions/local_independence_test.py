@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+
 """
 local_independence_test.py
 
@@ -185,7 +185,7 @@ def load_data_for_test(config: dict):
     return item_names, observed, theta, a, b, c
 
 
-def compute_predicted_probs(theta, a, b, c, D=1.702):
+def compute_predicted_probs(theta, a, b, c, D=1.7):
     """
     Compute model-predicted probabilities P_ij under a 2PL/3PL form:
 
