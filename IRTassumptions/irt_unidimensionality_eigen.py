@@ -85,26 +85,9 @@ def analyze_file(csv_path):
     print("\n  Eigenvalues (sorted descending):")
     print("  ", eigenvalues)
 
-    # --------------------------------------
-    # 4. Proportion of variance explained
-    # --------------------------------------
-    total_variance = n_items  # for a correlation matrix, trace = number of items
-    prop_variance = eigenvalues / total_variance
-    cum_prop_variance = np.cumsum(prop_variance)
-
-    print("\n  Proportion of variance explained by each factor:")
-    for i, (ev, pv, cpv) in enumerate(
-        zip(eigenvalues, prop_variance, cum_prop_variance), start=1
-    ):
-        print(
-            f"    Factor {i:2d}: "
-            f"Eigenvalue = {ev:6.3f}, "
-            f"Prop Var = {pv:6.3f}, "
-            f"Cum Prop Var = {cpv:6.3f}"
-        )
 
     # --------------------------------------
-    # 5. Simple unidimensionality diagnostics
+    # 4. Simple unidimensionality diagnostics
     # --------------------------------------
     lambda1 = eigenvalues[0]
     lambda2 = eigenvalues[1]
@@ -119,11 +102,11 @@ def analyze_file(csv_path):
     print("  - Inspect the scree plot to see if there is a clear 'elbow' after the first eigenvalue.\n")
 
     # --------------------------------------
-    # 6. Scree plot
+    # 5. Scree plot
     # --------------------------------------
     plt.figure()
     plt.plot(range(1, n_items + 1), eigenvalues, marker='o')
-    plt.xlabel('Factor number')
+    plt.xlabel('Eigenvalue index')
     plt.ylabel('Eigenvalue')
     plt.title(f'Scree plot: {csv_path}')
     plt.grid(True)

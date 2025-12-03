@@ -1,3 +1,3 @@
-responses = ../gyrate/preprocessing/IRTMatrix.csv
-abilities = ../gyrate/data/IRTMatrix_2PL_abilities.csv
-items = ../gyrate/data/IRTMatrix_2PL_items.csv
+responses = ../data/processed/Gyrate/IRTMatrix.csv
+abilities = ../data/processed/Gyrate/abilities_2pl.csv
+items = ../data/processed/Gyrate/item_params_2pl.csv
