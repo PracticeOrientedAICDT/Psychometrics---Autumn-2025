@@ -5,6 +5,12 @@ from sklearn.pipeline import make_pipeline
 from sklearn.preprocessing import PolynomialFeatures
 from sklearn.linear_model import Ridge
 from typing import Iterable, Optional, Dict, Tuple, List
+<<<<<<< HEAD
+=======
+from sklearn.model_selection import train_test_split
+from sklearn.metrics import r2_score, mean_absolute_error
+
+>>>>>>> e93cbcc (Initial commit from main2.0)
 
 
 class MechanicsRegressor:
@@ -142,3 +148,59 @@ class MechanicsRegressor:
                 out[col] = out[col].clip(lower=lo, upper=hi)
 
         return out
+
+
+class MechanicsToBModel:
+    """
+    Ridge regression model mapping mechanics features -> IRT difficulty (b).
+
+    Intended for interpolation and evaluation of generated mechanics,
+    not for unconstrained extrapolation.
+    """
+
+    def __init__(self, alpha: float = 1.0):
+        self.model = Ridge(alpha=alpha)
+        self.feature_cols_: Optional[List[str]] = None
+        self.stats_: Optional[Dict[str, float]] = None
+
+    def fit(
+        self,
+        df: pd.DataFrame,
+        feature_cols: Iterable[str],
+        target_col: str = "b",
+        test_size: float = 0.3,
+        random_state: int = 5,
+    ):
+        feature_cols = list(feature_cols)
+        missing = [c for c in feature_cols + [target_col] if c not in df.columns]
+        if missing:
+            raise ValueError(f"Missing columns for mechanics→b fit: {missing}")
+
+        X = df[feature_cols].fillna(0.0)
+        y = df[target_col].to_numpy(dtype=float)
+
+        X_train, X_test, y_train, y_test = train_test_split(
+            X, y, test_size=test_size, random_state=random_state
+        )
+
+        self.model.fit(X_train, y_train)
+
+        y_pred = self.model.predict(X_test)
+        self.stats_ = {
+            "r2": r2_score(y_test, y_pred),
+            "mae": mean_absolute_error(y_test, y_pred),
+        }
+
+        self.feature_cols_ = feature_cols
+        return self
+
+    def predict_b(self, df: pd.DataFrame) -> np.ndarray:
+        if self.feature_cols_ is None:
+            raise RuntimeError("Model must be fitted before prediction.")
+
+        missing = [c for c in self.feature_cols_ if c not in df.columns]
+        if missing:
+            raise ValueError(f"Missing feature columns for prediction: {missing}")
+
+        X = df[self.feature_cols_].fillna(0.0)
+        return self.model.predict(X)

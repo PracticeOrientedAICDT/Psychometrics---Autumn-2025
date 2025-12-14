@@ -15,7 +15,12 @@ from init_core.cat import CATConfig, run_cat
 from init_core.evaluation_cat import sweep
 from init_core.viz import plot_icc,simulated_plot_comparison
 from utils.io_utils import validate_csv_paths
+<<<<<<< HEAD
 from init_core.mechanics import MechanicsRegressor
+=======
+#from init_core.mechanics import MechanicsRegressor
+from init_core.mechanics import MechanicsToBModel
+>>>>>>> e93cbcc (Initial commit from main2.0)
 from games.QuickCalc.preprocessing.process import get_irt_matrix
 
 from pathlib import Path
@@ -193,47 +198,56 @@ def update_item_mechanics_with_irt(
     return merged
 
 
-def generate_item_mechanics():
-    mech_cols = ["difficulty", "speedup", "releaseInterval"]
+def generate_item_mechanics(target_b=0.0, top_k=27):
+    item_mech = pd.read_csv(ITEM_MECH)
+    irt = pd.read_csv(ITEMS_27)
 
-    reg = MechanicsRegressor(
-        degree=2,
-        alpha=1.0,
-        feature_cols=["a", "b"],
-        int_mech_cols=["difficulty", "bonus", "speedup", "releaseInterval"],
-        clip_config={"difficulty": (1, 27), "releaseInterval": (2000, 4000)}
+    # join mechanics with b (you already do this logic elsewhere)
+    df = item_mech.merge(
+        irt[["item_id", "b"]],
+        left_on="level",
+        right_on="item_id",
+        how="inner"
     )
 
-    reg.fit(pd.read_csv(ITEM_MECH), mech_cols=mech_cols)
+    feature_cols = [
+        "n_functions",
+        "releaseInterval",
+        "speedup",
+        "bonus",
+        "balloon_lifetime_min",
+        "balloon_lifetime_max",
+        "has_addition",
+        "has_subtraction",
+        "has_multiplication",
+        "has_division",
+        "has_fraction",
+        "has_percentage",
+        "left_min", "left_max",
+        "right_min", "right_max",
+        "limit_min", "limit_max",
+    ]
 
+    model = MechanicsToBModel(alpha=1.0).fit(
+        df=df,
+        feature_cols=feature_cols,
+        target_col="b"
+    )
 
-    # For a new IRT bank with only a,b:
-    pred_mechanics = reg.predict(pd.read_csv(NEW_ITEM_PARAMS))
-    pred_mechanics.to_csv(NEW_ITEM_MECH, index=False)
+    # generate candidates (reuse your existing grid logic)
+    candidates = generate_candidate_mechanics(feature_cols)
+    candidates["pred_b"] = model.predict_b(candidates)
+    candidates["abs_err"] = (candidates["pred_b"] - target_b).abs()
 
-def save_sample_variations():
-    OUT_DIR = EXPERIMENT_DIR / "interim"
-    OUT_DIR.mkdir(parents=True, exist_ok=True)
+    out = candidates.sort_values("abs_err").head(top_k)
 
-    sample_sizes = [500,600,700,800,900, 1000]
+    NEW_ITEM_MECH.parent.mkdir(parents=True, exist_ok=True)
+    out.to_csv(NEW_ITEM_MECH, index=False)
 
-    # Load the full matrix (each row = one unique AccountId)
-    IRT = EXPERIMENT_DIR / "interim" / "IRT_MATRIX_27.csv"
-    df = pd.read_csv(IRT)  # or directly use your uploaded path if you replace this constant
-
-    for n in sample_sizes:
-        if n > len(df):
-            print(f"Skipping n={n}, only {len(df)} rows available.")
-            continue
-
-        # Randomly sample n rows
-        sub_df = df.sample(n=n, random_state=42)
-
-        # Save in the same format (AccountId preserved as row index)
-        out_path = OUT_DIR / f"{n}_IRTMatrix_27.csv"
-        sub_df.to_csv(out_path, index=False)
-
-        print(f"Saved sample size {n} → {out_path}")
+    print(
+        f"Saved generated mechanics → {NEW_ITEM_MECH}\n"
+        f"b-model R²={model.stats_['r2']:.3f}, MAE={model.stats_['mae']:.3f}"
+    )
 
 def samp_sim_comparison():
     OUT_DIR = Path("/Users/tt25013/Documents/GitHub/Psychometrics---Autumn-2025/data/experimental/QuickCalc")
