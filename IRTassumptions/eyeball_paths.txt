@@ -1,0 +1,3 @@
+responses = ../data/diagnostics/labelled_irt/EyeBall.csv
+abilities = ../data/processed/EyeBall/abilities_2pl.csv
+items = ../data/processed/EyeBall/item_params_2pl.csv
