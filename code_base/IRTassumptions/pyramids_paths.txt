@@ -1,0 +1,3 @@
+responses = ../data/diagnostics/labelled_irt/Pyramids.csv
+abilities = ../data/processed/Pyramids/abilities_2pl.csv
+items = ../data/processed/Pyramids/item_params_2pl.csv

@@ -1,0 +1,3 @@
+responses = ../data/processed/Gyrate/IRTMatrix.csv
+abilities = ../data/processed/Gyrate/abilities_2pl.csv
+items = ../data/processed/Gyrate/item_params_2pl.csv
